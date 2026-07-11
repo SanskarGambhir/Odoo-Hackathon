@@ -1,0 +1,212 @@
+1. npm init:- Initialize package.json for the project.
+
+
+2. Create project structure
+        Create a src folder and inside it create:
+            controllers/
+            db/
+            middlewares/
+            routes/
+            utils/
+
+
+3. Create index.js:- This will be the entry point of your backend server.
+
+
+4. In package.json create a new entity:- 
+    "type": "module"  (Allows you to use ES Modules syntax like import/export)
+
+
+5. Install "nodemon" because it restarts your server automatically:- 
+    npm i --save-dev nodemon 
+
+
+6. Update "scripts" tag in package.json to use nodemon:- 
+        "scripts": { 
+            "dev": "nodemon index.js", 
+            "start": "node index.js" 
+        }
+
+
+7. Install required packages:-
+        npm i express cors dotenv
+        npm i @prisma/client@6
+        npm i --save-dev prisma@6 nodemon
+
+        express      -> Backend framework
+        cors         -> Handle cross-origin requests
+        dotenv       -> Load environment variables
+        @prisma/client -> Prisma ORM Client
+        prisma       -> Prisma CLI
+
+        Note:- I am using Prisma version 6 because it doesnt need seperate ts file.
+
+
+8. Initialize Prisma:-
+        npx prisma init
+
+        Creates:
+        prisma/
+            schema.prisma
+        .env
+
+
+9. Configure PostgreSQL connection:-
+        In .env:-
+            DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/learningPrisma"
+
+        Replace:
+        - postgres with your username
+        - YOUR_PASSWORD with your password
+        - learningPrisma with your database name
+
+
+10. Define database models:-
+        Open prisma/schema.prisma
+
+        Example:
+        generator client {
+            provider = "prisma-client-js"
+        }
+
+        datasource db {
+            provider = "postgresql"
+            url      = env("DATABASE_URL")
+        }
+
+        model User {
+            id    Int    @id @default(autoincrement())
+            email String @unique
+            name  String?
+        }
+
+        Models define database tables.
+
+
+11. Create first migration:-
+        npx prisma migrate dev --name init
+
+        This:
+        - Creates migration files
+        - Creates tables in PostgreSQL
+        - Syncs database with schema
+        - Generates Prisma Client
+
+
+12. Generate Prisma Client:- Generates JavaScript code used to interact with the database.
+        npx prisma generate
+
+
+13. Create Prisma connection file:-
+        Create:
+        src/db/prisma.js
+
+        import { PrismaClient } from "@prisma/client";
+        const prisma = new PrismaClient();
+        export default prisma;
+
+        This creates a reusable Prisma instance.
+
+
+14. Create Express app
+        Create:
+        src/app.js
+
+        import express from "express";
+        import cors from "cors";
+
+        const app = express();
+
+        app.use(cors());
+        app.use(express.json());
+
+        export default app;
+
+
+15. Configure server
+        Create:
+        src/index.js
+
+        import dotenv from "dotenv";
+        import app from "./app.js";
+
+        dotenv.config();
+
+        const PORT = process.env.PORT || 8000;
+
+        app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+        });
+
+
+16. Test Prisma connection:-
+        Create a test query:
+            import prisma from "./db/prisma.js";
+            const users = await prisma.user.findMany();
+            console.log(users);
+
+        If no error occurs, Prisma is connected successfully.
+
+
+17. Open Prisma Studio:- Opens a browser GUI to view and edit database records.
+        npx prisma studio
+    
+
+18. Create new migration after schema changes:-
+        Whenever schema.prisma changes do:
+            npx prisma migrate dev --name migration_name
+
+        Example:
+            npx prisma migrate dev --name add_user_age
+
+
+19. Useful Prisma commands:-
+        npx prisma studio
+        -> Open database GUI
+
+        npx prisma generate
+        -> Regenerate Prisma Client
+
+        npx prisma migrate dev
+        -> Apply migrations
+
+        npx prisma migrate reset
+        -> Reset database
+
+        npx prisma db pull
+        -> Import existing database schema into Prisma
+
+        npx prisma db push
+        -> Push schema changes without migrations
+
+        npx prisma migrate dev --name migration_name
+        -> Create a new migration with a specific name
+
+
+20. Typical Request Flow:-
+        Route
+        ↓
+        Controller
+        ↓
+        Prisma Client
+        ↓
+        PostgreSQL Database
+
+
+21. Recommended Folder Structure:-
+        src/
+        ├── controllers/
+        ├── db/
+        │   └── prisma.js
+        ├── middlewares/
+        ├── routes/
+        ├── utils/
+        ├── app.js
+        └── index.js
+
+        prisma/
+        ├── schema.prisma
+        └── migrations/
+
+        .env
+        package.json

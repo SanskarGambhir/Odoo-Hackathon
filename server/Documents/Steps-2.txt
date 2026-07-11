@@ -1,0 +1,5 @@
+1. Setup "index.js" and "app.js" files to initialize the server and express. (see code from zip file "Basic Backend Setup.zip")
+
+2. Create "api-response.js" and "api-error.js" files inside utils folder to handle API responses and errors in a structured way.
+
+3. Create an "index.js" file inside ""db" folder to setup mongoose connection with MongoDB database. 

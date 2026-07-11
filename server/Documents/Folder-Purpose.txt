@@ -1,0 +1,9 @@
+1. controllers :- This is where all the Logic is written
+
+2. db :- All the database operations. Whether its a connection to the connection to the database or disconnection from the database, etc.
+
+3. middlewares :- When a request comes and wants to go to the server in between that if we want to do certain tasks then middleware is used. Its simply do something in-between.
+
+5. routes:- All the routing information
+
+6. utils:- Utility functions that can be used across the application
