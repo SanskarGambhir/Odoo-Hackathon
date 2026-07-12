@@ -75,6 +75,14 @@ model Vehicle {
   region          String? // for dashboard filters
   status          VehicleStatus @default(AVAILABLE)
 
+  rcNumber         String?
+  insuranceNumber  String?
+  insuranceExpiry  DateTime?
+  pucNumber        String?
+  pucExpiry        DateTime?
+  insuranceExpired Boolean   @default(false) // auto-maintained by the insurance expiry cron
+  documentUrls     String[]  @default([]) // Cloudinary URLs of uploaded RC/Insurance/PUC images
+
   trips           Trip[]
   maintenanceLogs MaintenanceLog[]
   fuelLogs        FuelLog[]

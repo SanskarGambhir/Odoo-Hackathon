@@ -103,6 +103,7 @@ export const registerUser = async (req, res) => {
 };
 
 export const loginUser = async (req, res) => {
+  console.log("Login request body:", req.body);
   try {
     const email = req.body.email?.trim().toLowerCase();
     const username = req.body.username?.trim().toLowerCase();

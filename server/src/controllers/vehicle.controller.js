@@ -1,5 +1,49 @@
 import prisma from "../db/prisma.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { extractVehicleDocumentDetails } from "../services/vehicleDocument.service.js";
+import { uploadImageBuffer } from "../services/cloudinary.service.js";
+
+export const extractVehicleDocuments = asyncHandler(async (req, res) => {
+  const files = req.files || [];
+
+  if (files.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "At least one document image is required",
+    });
+  }
+
+  // Uploads must succeed independently of extraction — a Gemini failure (e.g. quota)
+  // shouldn't discard images that were successfully uploaded to Cloudinary.
+  const [extractedResult, uploads] = await Promise.all([
+    extractVehicleDocumentDetails(files).catch((err) => {
+      console.error("Vehicle document extraction failed:", err.message);
+      return null;
+    }),
+    Promise.all(
+      files.map((file) =>
+        uploadImageBuffer(file.buffer, { folder: "transitops/vehicle-documents" })
+      )
+    ),
+  ]);
+
+  const extracted = extractedResult || {
+    rcNumber: "",
+    insuranceNumber: "",
+    insuranceExpiry: "",
+    pucNumber: "",
+    pucExpiry: "",
+  };
+
+  return res.status(200).json({
+    success: true,
+    extractionFailed: !extractedResult,
+    data: {
+      ...extracted,
+      documentUrls: uploads.map((u) => u.secure_url),
+    },
+  });
+});
 
 export const createVehicle = asyncHandler(async (req, res) => {
   console.log("Request body:", req.body); // Log the request body for debugging
@@ -11,6 +55,12 @@ export const createVehicle = asyncHandler(async (req, res) => {
     odometer,
     acquisitionCost,
     region,
+    rcNumber,
+    insuranceNumber,
+    insuranceExpiry,
+    pucNumber,
+    pucExpiry,
+    documentUrls,
   } = req.body;
 
   if (!registrationNo || !name || !type || !maxLoadKg || !acquisitionCost) {
@@ -31,6 +81,13 @@ export const createVehicle = asyncHandler(async (req, res) => {
         odometer: odometer ?? 0,
         acquisitionCost,
         region,
+        ...(rcNumber && { rcNumber }),
+        ...(insuranceNumber && { insuranceNumber }),
+        ...(insuranceExpiry && { insuranceExpiry: new Date(insuranceExpiry) }),
+        ...(pucNumber && { pucNumber }),
+        ...(pucExpiry && { pucExpiry: new Date(pucExpiry) }),
+        ...(insuranceExpiry && { insuranceExpired: new Date(insuranceExpiry) < new Date() }),
+        ...(Array.isArray(documentUrls) && documentUrls.length > 0 && { documentUrls }),
       },
     });
     return res.status(201).json({ success: true, data: vehicle });
@@ -75,8 +132,20 @@ export const getVehicleById = asyncHandler(async (req, res) => {
 });
 
 export const updateVehicle = asyncHandler(async (req, res) => {
-  const { name, type, maxLoadKg, region, odometer, acquisitionCost } =
-    req.body;
+  const {
+    name,
+    type,
+    maxLoadKg,
+    region,
+    odometer,
+    acquisitionCost,
+    rcNumber,
+    insuranceNumber,
+    insuranceExpiry,
+    pucNumber,
+    pucExpiry,
+    documentUrls,
+  } = req.body;
 
   const vehicle = await prisma.vehicle.findUnique({
     where: { id: req.params.id },
@@ -97,6 +166,15 @@ export const updateVehicle = asyncHandler(async (req, res) => {
       ...(region !== undefined && { region }),
       ...(odometer !== undefined && { odometer }),
       ...(acquisitionCost !== undefined && { acquisitionCost }),
+      ...(rcNumber !== undefined && { rcNumber }),
+      ...(insuranceNumber !== undefined && { insuranceNumber }),
+      ...(pucNumber !== undefined && { pucNumber }),
+      ...(pucExpiry !== undefined && { pucExpiry: pucExpiry ? new Date(pucExpiry) : null }),
+      ...(insuranceExpiry !== undefined && {
+        insuranceExpiry: insuranceExpiry ? new Date(insuranceExpiry) : null,
+        insuranceExpired: insuranceExpiry ? new Date(insuranceExpiry) < new Date() : false,
+      }),
+      ...(Array.isArray(documentUrls) && { documentUrls }),
     },
   });
 

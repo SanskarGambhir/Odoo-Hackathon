@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Pencil, ShieldCheck, ShieldOff, Filter, AlertCircle, ScanLine, CheckCircle2 } from 'lucide-react';
@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/table';
 import { useData } from '../contexts/DataContext';
 import * as driversApi from '../api/drivers.js';
+import useObjectUrl from '../hooks/useObjectUrl';
 import PageHeader from '../components/shared/PageHeader';
 import StatusBadge from '../components/shared/StatusBadge';
 import EmptyState from '../components/shared/EmptyState';
@@ -48,22 +49,6 @@ const LICENSE_FILTER_OPTIONS = [
   { value: 'LMV', label: 'LMV' },
   { value: 'Transport', label: 'Transport' },
 ];
-
-function useObjectUrl(file) {
-  const [url, setUrl] = useState(null);
-
-  useEffect(() => {
-    if (!file) {
-      setUrl(null);
-      return;
-    }
-    const objectUrl = URL.createObjectURL(file);
-    setUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [file]);
-
-  return url;
-}
 
 function isLicenseExpired(expiryDate) {
   return new Date(expiryDate) < new Date();

@@ -14,6 +14,10 @@ import {
   IndianRupee,
   Hash,
   AlertCircle,
+  ScanLine,
+  CheckCircle2,
+  ShieldAlert,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +46,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useData } from '../contexts/DataContext';
+import * as vehiclesApi from '../api/vehicles.js';
+import useObjectUrl from '../hooks/useObjectUrl';
 import PageHeader from '../components/shared/PageHeader';
 import StatusBadge from '../components/shared/StatusBadge';
 import EmptyState from '../components/shared/EmptyState';
@@ -59,6 +65,22 @@ const fmt = (num) =>
 const fmtCurrency = (num) =>
   num != null ? `₹${Number(num).toLocaleString('en-IN')}` : '—';
 
+function isInsuranceExpired(vehicle) {
+  return Boolean(vehicle.insuranceExpiry) && new Date(vehicle.insuranceExpiry) < new Date();
+}
+
+function DocumentThumb({ file }) {
+  const previewUrl = useObjectUrl(file);
+  if (!previewUrl) return null;
+  return (
+    <img
+      src={previewUrl}
+      alt={file.name}
+      className="h-20 w-full rounded-md border border-gray-200 object-cover"
+    />
+  );
+}
+
 const defaultFormValues = {
   registrationNo: '',
   name: '',
@@ -67,6 +89,11 @@ const defaultFormValues = {
   odometer: '',
   acquisitionCost: '',
   region: '',
+  rcNumber: '',
+  insuranceNumber: '',
+  insuranceExpiry: '',
+  pucNumber: '',
+  pucExpiry: '',
 };
 
 export default function Fleet() {
@@ -84,12 +111,18 @@ export default function Fleet() {
   const [deletingVehicle, setDeletingVehicle] = useState(null);
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [documentFiles, setDocumentFiles] = useState([]);
+  const [documentUrls, setDocumentUrls] = useState([]);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [isExtracted, setIsExtracted] = useState(false);
+  const [extractError, setExtractError] = useState('');
 
   const {
     register,
     handleSubmit,
     reset,
     control,
+    setValue,
     formState: { errors },
   } = useForm({ defaultValues: defaultFormValues });
 
@@ -121,6 +154,10 @@ export default function Fleet() {
   const handleAdd = () => {
     setEditingVehicle(null);
     setFormError('');
+    setExtractError('');
+    setDocumentFiles([]);
+    setDocumentUrls([]);
+    setIsExtracted(false);
     reset(defaultFormValues);
     setFormDialogOpen(true);
   };
@@ -129,6 +166,10 @@ export default function Fleet() {
   const handleEdit = (vehicle) => {
     setEditingVehicle(vehicle);
     setFormError('');
+    setExtractError('');
+    setDocumentFiles([]);
+    setDocumentUrls([]);
+    setIsExtracted(false);
     reset({
       registrationNo: vehicle.registrationNo || '',
       name: vehicle.name || '',
@@ -137,8 +178,38 @@ export default function Fleet() {
       odometer: vehicle.odometer ?? '',
       acquisitionCost: vehicle.acquisitionCost ?? '',
       region: vehicle.region || '',
+      rcNumber: vehicle.rcNumber || '',
+      insuranceNumber: vehicle.insuranceNumber || '',
+      insuranceExpiry: vehicle.insuranceExpiry ? vehicle.insuranceExpiry.substring(0, 10) : '',
+      pucNumber: vehicle.pucNumber || '',
+      pucExpiry: vehicle.pucExpiry ? vehicle.pucExpiry.substring(0, 10) : '',
     });
     setFormDialogOpen(true);
+  };
+
+  const handleExtractDocuments = async () => {
+    if (documentFiles.length === 0) return;
+    setExtractError('');
+    setIsExtracting(true);
+    try {
+      const { data } = await vehiclesApi.extractVehicleDocuments(documentFiles);
+      const extracted = data.data;
+      setDocumentUrls(extracted.documentUrls || []);
+      if (extracted.rcNumber) setValue('rcNumber', extracted.rcNumber);
+      if (extracted.insuranceNumber) setValue('insuranceNumber', extracted.insuranceNumber);
+      if (extracted.insuranceExpiry) setValue('insuranceExpiry', extracted.insuranceExpiry);
+      if (extracted.pucNumber) setValue('pucNumber', extracted.pucNumber);
+      if (extracted.pucExpiry) setValue('pucExpiry', extracted.pucExpiry);
+      if (data.extractionFailed) {
+        setExtractError('Documents were uploaded, but automatic detail extraction failed — please fill the fields in manually.');
+      } else {
+        setIsExtracted(true);
+      }
+    } catch (err) {
+      setExtractError(err.response?.data?.message || 'Could not extract document details. Please try again.');
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   // Open view dialog
@@ -179,6 +250,12 @@ export default function Fleet() {
       odometer: data.odometer ? Number(data.odometer) : 0,
       acquisitionCost: data.acquisitionCost ? Number(data.acquisitionCost) : 0,
       region: data.region || undefined,
+      rcNumber: data.rcNumber || undefined,
+      insuranceNumber: data.insuranceNumber || undefined,
+      insuranceExpiry: data.insuranceExpiry || undefined,
+      pucNumber: data.pucNumber || undefined,
+      pucExpiry: data.pucExpiry || undefined,
+      documentUrls: documentUrls.length > 0 ? documentUrls : undefined,
     };
 
     try {
@@ -320,6 +397,9 @@ export default function Fleet() {
                   <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Status
                   </TableHead>
+                  <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Insurance
+                  </TableHead>
                   <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider text-right">
                     Actions
                   </TableHead>
@@ -351,6 +431,20 @@ export default function Fleet() {
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={vehicle.status} />
+                    </TableCell>
+                    <TableCell>
+                      {isInsuranceExpired(vehicle) ? (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-[#E46E78]/15 text-[#E46E78]">
+                          <ShieldAlert className="w-3 h-3" />
+                          Expired
+                        </span>
+                      ) : vehicle.insuranceExpiry ? (
+                        <span className="text-sm text-gray-500">
+                          {new Date(vehicle.insuranceExpiry).toLocaleDateString()}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-gray-400">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -411,6 +505,58 @@ export default function Fleet() {
                 {formError}
               </div>
             )}
+
+            {!editingVehicle && (
+              <div className="space-y-3 rounded-lg border border-dashed border-gray-300 p-3">
+                <p className="text-sm font-medium text-gray-700">
+                  Vehicle Documents <span className="text-gray-400 font-normal">(optional — RC, Insurance, PUC)</span>
+                </p>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="h-9 text-sm"
+                  onChange={(e) => {
+                    setDocumentFiles(Array.from(e.target.files || []));
+                    setDocumentUrls([]);
+                    setIsExtracted(false);
+                  }}
+                />
+                {documentFiles.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {documentFiles.map((file, idx) => (
+                      <DocumentThumb key={`${file.name}-${idx}`} file={file} />
+                    ))}
+                  </div>
+                )}
+
+                {extractError && (
+                  <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    {extractError}
+                  </div>
+                )}
+
+                {isExtracted && (
+                  <div className="flex items-center gap-2 text-sm text-[#21B799]">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    Details extracted — review the fields below before saving.
+                  </div>
+                )}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={documentFiles.length === 0 || isExtracting}
+                  onClick={handleExtractDocuments}
+                  className="border-[#714B67] text-[#714B67] hover:bg-[#714B67]/5"
+                >
+                  <ScanLine className="w-4 h-4 mr-2" />
+                  {isExtracting ? 'Extracting...' : 'Extract Details from Documents'}
+                </Button>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               {/* Registration Number */}
               <div className="space-y-1.5">
@@ -550,6 +696,71 @@ export default function Fleet() {
                   )}
                 />
               </div>
+
+              {/* RC Number */}
+              <div className="space-y-1.5">
+                <Label htmlFor="rcNumber" className="text-sm font-medium">
+                  RC Number
+                </Label>
+                <Input
+                  id="rcNumber"
+                  placeholder="e.g. RC-1234567890"
+                  className="h-9 text-sm"
+                  {...register('rcNumber')}
+                />
+              </div>
+
+              {/* Insurance Number */}
+              <div className="space-y-1.5">
+                <Label htmlFor="insuranceNumber" className="text-sm font-medium">
+                  Insurance Policy No.
+                </Label>
+                <Input
+                  id="insuranceNumber"
+                  placeholder="e.g. POL-9876543210"
+                  className="h-9 text-sm"
+                  {...register('insuranceNumber')}
+                />
+              </div>
+
+              {/* Insurance Expiry */}
+              <div className="space-y-1.5">
+                <Label htmlFor="insuranceExpiry" className="text-sm font-medium">
+                  Insurance Expiry
+                </Label>
+                <Input
+                  id="insuranceExpiry"
+                  type="date"
+                  className="h-9 text-sm"
+                  {...register('insuranceExpiry')}
+                />
+              </div>
+
+              {/* PUC Number */}
+              <div className="space-y-1.5">
+                <Label htmlFor="pucNumber" className="text-sm font-medium">
+                  PUC Number
+                </Label>
+                <Input
+                  id="pucNumber"
+                  placeholder="e.g. PUC-112233"
+                  className="h-9 text-sm"
+                  {...register('pucNumber')}
+                />
+              </div>
+
+              {/* PUC Expiry */}
+              <div className="space-y-1.5">
+                <Label htmlFor="pucExpiry" className="text-sm font-medium">
+                  PUC Expiry
+                </Label>
+                <Input
+                  id="pucExpiry"
+                  type="date"
+                  className="h-9 text-sm"
+                  {...register('pucExpiry')}
+                />
+              </div>
             </div>
 
             <DialogFooter className="pt-4">
@@ -620,10 +831,55 @@ export default function Fleet() {
                 label="Region"
                 value={viewingVehicle.region || '—'}
               />
+              <DetailItem
+                icon={<FileText className="w-4 h-4" />}
+                label="RC Number"
+                value={viewingVehicle.rcNumber || '—'}
+              />
+              <DetailItem
+                icon={<FileText className="w-4 h-4" />}
+                label="Insurance Policy No."
+                value={viewingVehicle.insuranceNumber || '—'}
+              />
+              <DetailItem
+                icon={isInsuranceExpired(viewingVehicle) ? <ShieldAlert className="w-4 h-4 text-[#E46E78]" /> : <FileText className="w-4 h-4" />}
+                label="Insurance Expiry"
+                value={
+                  viewingVehicle.insuranceExpiry
+                    ? `${new Date(viewingVehicle.insuranceExpiry).toLocaleDateString()}${isInsuranceExpired(viewingVehicle) ? ' (Expired)' : ''}`
+                    : '—'
+                }
+              />
+              <DetailItem
+                icon={<FileText className="w-4 h-4" />}
+                label="PUC Number"
+                value={viewingVehicle.pucNumber || '—'}
+              />
+              <DetailItem
+                icon={<FileText className="w-4 h-4" />}
+                label="PUC Expiry"
+                value={viewingVehicle.pucExpiry ? new Date(viewingVehicle.pucExpiry).toLocaleDateString() : '—'}
+              />
               <div className="col-span-2">
                 <span className="text-xs text-gray-500 block mb-1">Status</span>
                 <StatusBadge status={viewingVehicle.status} />
               </div>
+              {viewingVehicle.documentUrls?.length > 0 && (
+                <div className="col-span-2">
+                  <span className="text-xs text-gray-500 block mb-2">Uploaded Documents</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {viewingVehicle.documentUrls.map((url, idx) => (
+                      <a key={url} href={url} target="_blank" rel="noopener noreferrer">
+                        <img
+                          src={url}
+                          alt={`Vehicle document ${idx + 1}`}
+                          className="h-24 w-full rounded-md border border-gray-200 object-cover hover:opacity-80 transition-opacity"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

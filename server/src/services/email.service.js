@@ -35,6 +35,26 @@ export async function sendEmail({ to, subject, html }) {
   }
 }
 
+export function insuranceExpiredEmail(vehicle, recipientEmail) {
+  return {
+    to: recipientEmail,
+    subject: `⚠ Insurance Expired — ${vehicle.registrationNo}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px;">
+        <h2 style="color:#dc2626;">Vehicle Insurance Expired</h2>
+        <p>The insurance for vehicle <strong>${vehicle.registrationNo}</strong> (${vehicle.name})
+        ${vehicle.insuranceNumber ? `— policy <strong>${vehicle.insuranceNumber}</strong> —` : ""}
+        expired on <strong>${new Date(vehicle.insuranceExpiry).toLocaleDateString()}</strong>.</p>
+        <p>This vehicle has been automatically flagged. Please renew the insurance and update
+        the record in TransitOps as soon as possible.</p>
+        <p style="color:#6b7280; font-size: 12px; margin-top: 24px;">
+          Automated notice — TransitOps Fleet Management.
+        </p>
+      </div>
+    `,
+  };
+}
+
 export function licenseExpiryEmail(driver, daysRemaining) {
   return {
     to: driver.user.email,
