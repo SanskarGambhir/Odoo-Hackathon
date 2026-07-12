@@ -1,0 +1,497 @@
+import { useState, useMemo } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Search, Pencil, ShieldCheck, Filter } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { useData } from '../contexts/DataContext';
+import PageHeader from '../components/shared/PageHeader';
+import StatusBadge from '../components/shared/StatusBadge';
+import EmptyState from '../components/shared/EmptyState';
+
+const LICENSE_CATEGORIES = ['HMV', 'LMV', 'Transport'];
+const DRIVER_STATUSES = ['AVAILABLE', 'ON_TRIP', 'OFF_DUTY', 'SUSPENDED'];
+const STATUS_FILTER_OPTIONS = [
+  { value: 'ALL', label: 'All Statuses' },
+  { value: 'AVAILABLE', label: 'Available' },
+  { value: 'ON_TRIP', label: 'On Trip' },
+  { value: 'OFF_DUTY', label: 'Off Duty' },
+  { value: 'SUSPENDED', label: 'Suspended' },
+];
+const LICENSE_FILTER_OPTIONS = [
+  { value: 'ALL', label: 'All Categories' },
+  { value: 'HMV', label: 'HMV' },
+  { value: 'LMV', label: 'LMV' },
+  { value: 'Transport', label: 'Transport' },
+];
+
+function isLicenseExpired(expiryDate) {
+  return new Date(expiryDate) < new Date();
+}
+
+function getScoreColor(score) {
+  if (score >= 80) return 'text-[#21B799]';
+  if (score >= 60) return 'text-[#E4A900]';
+  return 'text-[#E46E78]';
+}
+
+function getCompletionBarColor(rate) {
+  if (rate > 80) return 'bg-[#21B799]';
+  if (rate > 60) return 'bg-[#E4A900]';
+  return 'bg-[#E46E78]';
+}
+
+function getCompletionBarTrack(rate) {
+  if (rate > 80) return 'bg-[#21B799]/15';
+  if (rate > 60) return 'bg-[#E4A900]/15';
+  return 'bg-[#E46E78]/15';
+}
+
+const defaultFormValues = {
+  name: '',
+  licenseNumber: '',
+  licenseCategory: 'LMV',
+  licenseExpiry: '',
+  contactNumber: '',
+  tripCompletionRate: 0,
+  safetyScore: 0,
+  status: 'AVAILABLE',
+};
+
+export default function Drivers() {
+  const { drivers, addDriver, updateDriver } = useData();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingDriver, setEditingDriver] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [licenseFilter, setLicenseFilter] = useState('ALL');
+
+  const form = useForm({ defaultValues: defaultFormValues });
+
+  const filteredDrivers = useMemo(() => {
+    return drivers.filter((d) => {
+      const matchesSearch =
+        !searchQuery ||
+        d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        d.licenseNumber.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'ALL' || d.status === statusFilter;
+      const matchesLicense =
+        licenseFilter === 'ALL' || d.licenseCategory === licenseFilter;
+      return matchesSearch && matchesStatus && matchesLicense;
+    });
+  }, [drivers, searchQuery, statusFilter, licenseFilter]);
+
+  function openAddDialog() {
+    setEditingDriver(null);
+    form.reset(defaultFormValues);
+    setDialogOpen(true);
+  }
+
+  function openEditDialog(driver) {
+    setEditingDriver(driver);
+    form.reset({
+      name: driver.name,
+      licenseNumber: driver.licenseNumber,
+      licenseCategory: driver.licenseCategory,
+      licenseExpiry: driver.licenseExpiry
+        ? driver.licenseExpiry.substring(0, 10)
+        : '',
+      contactNumber: driver.contactNumber,
+      tripCompletionRate: driver.tripCompletionRate ?? 0,
+      safetyScore: driver.safetyScore ?? 0,
+      status: driver.status,
+    });
+    setDialogOpen(true);
+  }
+
+  function onSubmit(data) {
+    const payload = {
+      ...data,
+      tripCompletionRate: Number(data.tripCompletionRate),
+      safetyScore: Number(data.safetyScore),
+    };
+    if (editingDriver) {
+      updateDriver({ ...editingDriver, ...payload });
+    } else {
+      addDriver(payload);
+    }
+    setDialogOpen(false);
+    form.reset(defaultFormValues);
+    setEditingDriver(null);
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Driver Management" subtitle="Track driver safety and assignments">
+        <Button
+          onClick={openAddDialog}
+          className="bg-[#714B67] hover:bg-[#5A3C52] text-white"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Driver
+        </Button>
+      </PageHeader>
+
+      {/* Search & Filters */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="flex flex-col sm:flex-row gap-3"
+      >
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="Search by name or license..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <Filter className="w-4 h-4 mr-2 text-gray-400" />
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            {STATUS_FILTER_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={licenseFilter} onValueChange={setLicenseFilter}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <Filter className="w-4 h-4 mr-2 text-gray-400" />
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            {LICENSE_FILTER_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </motion.div>
+
+      {/* Drivers Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="bg-white rounded-xl border shadow-sm overflow-hidden"
+      >
+        {filteredDrivers.length === 0 ? (
+          <EmptyState
+            icon={ShieldCheck}
+            title="No drivers found"
+            description="No drivers match your current search or filter criteria."
+            action={
+              <Button
+                onClick={openAddDialog}
+                variant="outline"
+                className="border-[#714B67] text-[#714B67] hover:bg-[#714B67]/5"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Driver
+              </Button>
+            }
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50/80">
+                  <TableHead className="font-semibold text-gray-700">Name</TableHead>
+                  <TableHead className="font-semibold text-gray-700">License No.</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Category</TableHead>
+                  <TableHead className="font-semibold text-gray-700">License Expiry</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Contact</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Trip Completion</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Safety Score</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Status</TableHead>
+                  <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <AnimatePresence>
+                  {filteredDrivers.map((driver, idx) => {
+                    const expired = isLicenseExpired(driver.licenseExpiry);
+                    const isSuspended = driver.status === 'SUSPENDED';
+                    return (
+                      <motion.tr
+                        key={driver.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 10 }}
+                        transition={{ duration: 0.2, delay: idx * 0.03 }}
+                        className={`border-b last:border-b-0 transition-colors hover:bg-gray-50/50 ${
+                          isSuspended ? 'bg-red-50/60' : ''
+                        }`}
+                      >
+                        <TableCell className="font-medium text-gray-900">
+                          {driver.name}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm text-gray-600">
+                          {driver.licenseNumber}
+                        </TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#714B67]/10 text-[#714B67]">
+                            {driver.licenseCategory}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className={expired ? 'text-[#E46E78] font-semibold' : 'text-gray-600'}>
+                              {new Date(driver.licenseExpiry).toLocaleDateString()}
+                            </span>
+                            {expired && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E46E78]/15 text-[#E46E78] uppercase tracking-wide">
+                                Expired
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-gray-600">
+                          {driver.contactNumber}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2 min-w-[120px]">
+                            <div className={`h-2 flex-1 rounded-full overflow-hidden ${getCompletionBarTrack(driver.tripCompletionRate)}`}>
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${getCompletionBarColor(driver.tripCompletionRate)}`}
+                                style={{ width: `${driver.tripCompletionRate}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-medium text-gray-500 w-8 text-right">
+                              {driver.tripCompletionRate}%
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`font-bold text-sm ${getScoreColor(driver.safetyScore)}`}>
+                            {driver.safetyScore}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={driver.status} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-gray-400 hover:text-[#714B67] hover:bg-[#714B67]/10"
+                            onClick={() => openEditDialog(driver)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </motion.tr>
+                    );
+                  })}
+                </AnimatePresence>
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </motion.div>
+
+      {/* Add/Edit Driver Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-gray-900">
+              {editingDriver ? 'Edit Driver' : 'Add New Driver'}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Name */}
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="name">
+                  Full Name <span className="text-[#E46E78]">*</span>
+                </Label>
+                <Input
+                  id="name"
+                  placeholder="Enter driver's full name"
+                  {...form.register('name', { required: 'Name is required' })}
+                />
+                {form.formState.errors.name && (
+                  <p className="text-xs text-[#E46E78]">{form.formState.errors.name.message}</p>
+                )}
+              </div>
+
+              {/* License Number */}
+              <div className="space-y-1.5">
+                <Label htmlFor="licenseNumber">
+                  License Number <span className="text-[#E46E78]">*</span>
+                </Label>
+                <Input
+                  id="licenseNumber"
+                  placeholder="e.g. DL-1234567890"
+                  {...form.register('licenseNumber', { required: 'License number is required' })}
+                />
+                {form.formState.errors.licenseNumber && (
+                  <p className="text-xs text-[#E46E78]">{form.formState.errors.licenseNumber.message}</p>
+                )}
+              </div>
+
+              {/* License Category */}
+              <div className="space-y-1.5">
+                <Label>License Category</Label>
+                <Controller
+                  control={form.control}
+                  name="licenseCategory"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LICENSE_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+
+              {/* License Expiry */}
+              <div className="space-y-1.5">
+                <Label htmlFor="licenseExpiry">
+                  License Expiry <span className="text-[#E46E78]">*</span>
+                </Label>
+                <Input
+                  id="licenseExpiry"
+                  type="date"
+                  {...form.register('licenseExpiry', { required: 'Expiry date is required' })}
+                />
+                {form.formState.errors.licenseExpiry && (
+                  <p className="text-xs text-[#E46E78]">{form.formState.errors.licenseExpiry.message}</p>
+                )}
+              </div>
+
+              {/* Contact Number */}
+              <div className="space-y-1.5">
+                <Label htmlFor="contactNumber">
+                  Contact Number <span className="text-[#E46E78]">*</span>
+                </Label>
+                <Input
+                  id="contactNumber"
+                  placeholder="+91 XXXXX XXXXX"
+                  {...form.register('contactNumber', { required: 'Contact number is required' })}
+                />
+                {form.formState.errors.contactNumber && (
+                  <p className="text-xs text-[#E46E78]">{form.formState.errors.contactNumber.message}</p>
+                )}
+              </div>
+
+              {/* Trip Completion Rate */}
+              <div className="space-y-1.5">
+                <Label htmlFor="tripCompletionRate">Trip Completion Rate (%)</Label>
+                <Input
+                  id="tripCompletionRate"
+                  type="number"
+                  min={0}
+                  max={100}
+                  {...form.register('tripCompletionRate', {
+                    min: { value: 0, message: 'Min 0' },
+                    max: { value: 100, message: 'Max 100' },
+                  })}
+                />
+                {form.formState.errors.tripCompletionRate && (
+                  <p className="text-xs text-[#E46E78]">{form.formState.errors.tripCompletionRate.message}</p>
+                )}
+              </div>
+
+              {/* Safety Score */}
+              <div className="space-y-1.5">
+                <Label htmlFor="safetyScore">Safety Score</Label>
+                <Input
+                  id="safetyScore"
+                  type="number"
+                  min={0}
+                  max={100}
+                  {...form.register('safetyScore', {
+                    min: { value: 0, message: 'Min 0' },
+                    max: { value: 100, message: 'Max 100' },
+                  })}
+                />
+                {form.formState.errors.safetyScore && (
+                  <p className="text-xs text-[#E46E78]">{form.formState.errors.safetyScore.message}</p>
+                )}
+              </div>
+
+              {/* Status */}
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label>Status</Label>
+                <Controller
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DRIVER_STATUSES.map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {s.replace('_', ' ')}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-[#714B67] hover:bg-[#5A3C52] text-white"
+              >
+                {editingDriver ? 'Update Driver' : 'Add Driver'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
