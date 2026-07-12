@@ -241,7 +241,7 @@ export default function Trips() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#714B67] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-border border-t-[#714B67] rounded-full animate-spin" />
       </div>
     );
   }
@@ -267,16 +267,16 @@ export default function Trips() {
 
       {/* Dispatch Board Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-gray-100/80 p-1 rounded-lg w-full grid grid-cols-4">
+        <TabsList className="bg-muted/80/80 p-1 rounded-lg w-full grid grid-cols-4">
           {TAB_CONFIG.map(({ value, label, icon: Icon }) => (
             <TabsTrigger
               key={value}
               value={value}
-              className="data-[state=active]:bg-white data-[state=active]:text-[#714B67] data-[state=active]:shadow-sm rounded-md text-sm font-medium transition-all"
+              className="data-[state=active]:bg-card data-[state=active]:text-[#714B67] data-[state=active]:shadow-sm rounded-md text-sm font-medium transition-all"
             >
               <Icon className="w-4 h-4 mr-1.5" />
               {label}
-              <span className="ml-1.5 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-gray-200/80 text-gray-600 min-w-[20px]">
+              <span className="ml-1.5 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-muted-foreground/20/80 text-muted-foreground min-w-[20px]">
                 {tripsByStatus[value].length}
               </span>
             </TabsTrigger>
@@ -335,7 +335,7 @@ export default function Trips() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold text-gray-900">
+            <DialogTitle className="text-lg font-semibold text-foreground">
               Create New Trip
             </DialogTitle>
           </DialogHeader>
@@ -425,7 +425,7 @@ export default function Trips() {
                       </SelectTrigger>
                       <SelectContent>
                         {availableVehicles.length === 0 ? (
-                          <div className="px-3 py-2 text-sm text-gray-400">
+                          <div className="px-3 py-2 text-sm text-muted-foreground/60">
                             No available vehicles
                           </div>
                         ) : (
@@ -460,7 +460,7 @@ export default function Trips() {
                       </SelectTrigger>
                       <SelectContent>
                         {availableDrivers.length === 0 ? (
-                          <div className="px-3 py-2 text-sm text-gray-400">
+                          <div className="px-3 py-2 text-sm text-muted-foreground/60">
                             No available drivers with valid license
                           </div>
                         ) : (
@@ -554,7 +554,7 @@ export default function Trips() {
       <Dialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen}>
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold text-gray-900">
+            <DialogTitle className="text-lg font-semibold text-foreground">
               Complete Trip
             </DialogTitle>
           </DialogHeader>
@@ -620,10 +620,10 @@ function TripCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.25, delay: index * 0.04 }}
-      className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow"
+      className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow"
     >
       <div className="flex items-start justify-between mb-3">
-        <h3 className="font-bold text-gray-900 text-sm">
+        <h3 className="font-bold text-foreground text-sm">
           Trip #{trip.id.slice(0, 8)}
         </h3>
         <StatusBadge status={trip.status} />
@@ -631,7 +631,7 @@ function TripCard({
 
       <div className="space-y-2.5 text-sm">
         {/* Route */}
-        <div className="flex items-center gap-2 text-gray-700">
+        <div className="flex items-center gap-2 text-muted-foreground">
           <MapPin className="w-4 h-4 text-[#714B67] flex-shrink-0" />
           <span>
             {trip.source}{' '}
@@ -641,25 +641,25 @@ function TripCard({
         </div>
 
         {/* Vehicle */}
-        <div className="flex items-center gap-2 text-gray-600">
+        <div className="flex items-center gap-2 text-muted-foreground">
           <Truck className="w-4 h-4 text-[#5B899E] flex-shrink-0" />
           <span>{getVehicleName(trip.vehicleId)}</span>
         </div>
 
         {/* Driver */}
-        <div className="flex items-center gap-2 text-gray-600">
+        <div className="flex items-center gap-2 text-muted-foreground">
           <User className="w-4 h-4 text-[#5B899E] flex-shrink-0" />
           <span>{getDriverName(trip.driverId)}</span>
         </div>
 
         {/* Cargo */}
-        <div className="flex items-center gap-2 text-gray-600">
+        <div className="flex items-center gap-2 text-muted-foreground">
           <Weight className="w-4 h-4 text-[#5B899E] flex-shrink-0" />
           <span>{trip.cargoWeightKg} kg</span>
         </div>
 
         {/* Planned Distance */}
-        <div className="flex items-center gap-2 text-gray-600">
+        <div className="flex items-center gap-2 text-muted-foreground">
           <RouteIcon className="w-4 h-4 text-[#5B899E] flex-shrink-0" />
           <span>{trip.plannedDistance} km planned</span>
         </div>
@@ -667,7 +667,7 @@ function TripCard({
 
       {/* Action Buttons */}
       {(trip.status === 'DRAFT' || trip.status === 'DISPATCHED') && (
-        <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100">
+        <div className="flex gap-2 mt-4 pt-3 border-t border-border/50">
           {trip.status === 'DRAFT' && (
             <>
               <Button

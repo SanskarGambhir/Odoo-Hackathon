@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { useState as useStateAlias } from 'react'; // skip if already imported
+import { Download, Loader2 } from 'lucide-react';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
+import { Button } from '../components/ui/button';
 import {
   Fuel,
   Truck,
@@ -34,8 +38,8 @@ const STATUS_COLORS = {
 const CustomTooltip = ({ active, payload, label, prefix = '₹' }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white rounded-lg shadow-lg border px-4 py-3 text-sm">
-        <p className="font-medium text-gray-900">{label}</p>
+      <div className="bg-card rounded-lg shadow-lg border px-4 py-3 text-sm">
+        <p className="font-medium text-foreground">{label}</p>
         {payload.map((entry, i) => (
           <p key={i} style={{ color: entry.color || entry.fill }} className="mt-1">
             {prefix}{Number(entry.value).toLocaleString('en-IN')}
@@ -55,6 +59,19 @@ export default function Analytics() {
   const [operationalCost, setOperationalCost] = useState([]);
   const [vehicleRoi, setVehicleRoi] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedReport, setSelectedReport] = useState('fuel-efficiency');
+const [isExporting, setIsExporting] = useState(false);
+
+const handleGenerateReport = async () => {
+  setIsExporting(true);
+  try {
+    await reportsApi.downloadReportPdf(selectedReport);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setIsExporting(false);
+  }
+};
 
   useEffect(() => {
     (async () => {
@@ -157,7 +174,7 @@ export default function Analytics() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#714B67] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-border border-t-[#714B67] rounded-full animate-spin" />
       </div>
     );
   }
@@ -165,6 +182,27 @@ export default function Analytics() {
   return (
     <div className="space-y-6">
       <PageHeader title="Analytics" subtitle="Fleet performance insights" />
+  <div className="flex items-center gap-2">
+    <Select value={selectedReport} onValueChange={setSelectedReport}>
+      <SelectTrigger className="w-[200px]">
+        <SelectValue placeholder="Select report" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="fuel-efficiency">Fuel Efficiency</SelectItem>
+        <SelectItem value="fleet-utilization">Fleet Utilization</SelectItem>
+        <SelectItem value="operational-cost">Operational Cost</SelectItem>
+        <SelectItem value="vehicle-roi">Vehicle ROI</SelectItem>
+      </SelectContent>
+    </Select>
+    <Button onClick={handleGenerateReport} disabled={isExporting}>
+      {isExporting ? (
+        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+      ) : (
+        <Download className="w-4 h-4 mr-2" />
+      )}
+      Generate PDF
+    </Button>
+  </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -180,10 +218,10 @@ export default function Analytics() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-xl shadow-sm border p-6"
+          className="bg-card rounded-xl shadow-sm border p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">Fuel Efficiency</h3>
-          <p className="text-sm text-gray-500 mb-4">Distance per liter, by vehicle</p>
+          <h3 className="text-lg font-semibold text-foreground mb-1">Fuel Efficiency</h3>
+          <p className="text-sm text-muted-foreground/80 mb-4">Distance per liter, by vehicle</p>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={fuelEfficiencyChartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -208,10 +246,10 @@ export default function Analytics() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-xl shadow-sm border p-6"
+          className="bg-card rounded-xl shadow-sm border p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">Top Costliest Vehicles</h3>
-          <p className="text-sm text-gray-500 mb-4">Vehicles with highest operational costs</p>
+          <h3 className="text-lg font-semibold text-foreground mb-1">Top Costliest Vehicles</h3>
+          <p className="text-sm text-muted-foreground/80 mb-4">Vehicles with highest operational costs</p>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart
               data={topCostliestVehicles}
@@ -244,10 +282,10 @@ export default function Analytics() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="bg-white rounded-xl shadow-sm border p-6"
+        className="bg-card rounded-xl shadow-sm border p-6"
       >
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">Vehicle Status Distribution</h3>
-        <p className="text-sm text-gray-500 mb-4">Current status breakdown of fleet vehicles</p>
+        <h3 className="text-lg font-semibold text-foreground mb-1">Vehicle Status Distribution</h3>
+        <p className="text-sm text-muted-foreground/80 mb-4">Current status breakdown of fleet vehicles</p>
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie

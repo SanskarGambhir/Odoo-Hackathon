@@ -192,7 +192,7 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#714B67] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-border border-t-[#714B67] rounded-full animate-spin" />
       </div>
     );
   }
@@ -221,10 +221,10 @@ export default function Dashboard() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+        className="bg-card rounded-xl border border-border shadow-sm p-4"
       >
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <SlidersHorizontal className="w-4 h-4" />
             Filters
           </div>
@@ -276,11 +276,11 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
+          className="lg:col-span-2 bg-card rounded-xl border border-border shadow-sm overflow-hidden"
         >
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h3 className="text-base font-semibold text-gray-900">Recent Trips</h3>
-            <p className="text-sm text-gray-500 mt-0.5">Latest 8 trips from the fleet</p>
+          <div className="px-5 py-4 border-b border-border/50">
+            <h3 className="text-base font-semibold text-foreground">Recent Trips</h3>
+            <p className="text-sm text-muted-foreground/80 mt-0.5">Latest 8 trips from the fleet</p>
           </div>
 
           {filteredTrips.length === 0 ? (
@@ -295,20 +295,20 @@ export default function Dashboard() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-gray-50/50">
-                    <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Route
                     </TableHead>
-                    <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Vehicle
                     </TableHead>
-                    <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Driver
                     </TableHead>
-                    <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Status
                     </TableHead>
-                    <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Created
                     </TableHead>
                   </TableRow>
@@ -317,21 +317,21 @@ export default function Dashboard() {
                   {filteredTrips.map((trip) => (
                     <TableRow
                       key={trip.id}
-                      className="hover:bg-gray-50/50 transition-colors"
+                      className="hover:bg-muted/50 transition-colors"
                     >
-                      <TableCell className="text-sm text-gray-700">
+                      <TableCell className="text-sm text-muted-foreground">
                         {trip.source} → {trip.destination}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-700">
+                      <TableCell className="text-sm text-muted-foreground">
                         {getVehicleName(trip.vehicleId)}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-700">
+                      <TableCell className="text-sm text-muted-foreground">
                         {getDriverName(trip.driverId)}
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={trip.status} />
                       </TableCell>
-                      <TableCell className="text-sm text-gray-500">
+                      <TableCell className="text-sm text-muted-foreground/80">
                         {formatDate(trip.createdAt)}
                       </TableCell>
                     </TableRow>
@@ -347,11 +347,11 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
+          className="bg-card rounded-xl border border-border shadow-sm overflow-hidden"
         >
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h3 className="text-base font-semibold text-gray-900">Vehicle Distribution</h3>
-            <p className="text-sm text-gray-500 mt-0.5">Status breakdown across fleet</p>
+          <div className="px-5 py-4 border-b border-border/50">
+            <h3 className="text-base font-semibold text-foreground">Vehicle Distribution</h3>
+            <p className="text-sm text-muted-foreground/80 mt-0.5">Status breakdown across fleet</p>
           </div>
 
           <div className="p-4 h-[320px]">
@@ -399,7 +399,7 @@ export default function Dashboard() {
                     iconType="circle"
                     iconSize={8}
                     formatter={(value) => (
-                      <span className="text-xs text-gray-600">{value}</span>
+                      <span className="text-xs text-muted-foreground">{value}</span>
                     )}
                   />
                 </PieChart>

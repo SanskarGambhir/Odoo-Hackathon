@@ -57,7 +57,7 @@ export default function Login() {
         className="w-full max-w-md relative z-10"
       >
         {/* Login Card */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/10 border border-white/20 overflow-hidden">
+        <div className="bg-card/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-black/10 border border-white/20 overflow-hidden">
           {/* Header / Branding */}
           <div className="px-8 pt-10 pb-6 text-center">
             <motion.div
@@ -72,7 +72,7 @@ export default function Login() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.5 }}
-              className="text-2xl font-bold text-gray-900 tracking-tight"
+              className="text-2xl font-bold text-foreground tracking-tight"
             >
               TransitOps
             </motion.h1>
@@ -80,7 +80,7 @@ export default function Login() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.5 }}
-              className="text-sm text-gray-500 mt-1"
+              className="text-sm text-muted-foreground/80 mt-1"
             >
               Fleet Management Platform
             </motion.p>
@@ -116,16 +116,16 @@ export default function Login() {
           <form onSubmit={handleSubmit(onSubmit)} className="px-8 pb-8 space-y-5">
             {/* Email Field */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+              <Label htmlFor="email" className="text-sm font-medium text-muted-foreground">
                 Email Address
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="you@transitops.com"
-                  className={`pl-10 h-11 bg-gray-50/50 border-gray-200 focus:border-[#714B67] focus:ring-[#714B67]/20 transition-colors ${
+                  className={`pl-10 h-11 bg-muted/50 border-border focus:border-[#714B67] focus:ring-[#714B67]/20 transition-colors ${
                     errors.email ? 'border-red-400 focus:border-red-400 focus:ring-red-400/20' : ''
                   }`}
                   {...register('email', {
@@ -147,16 +147,16 @@ export default function Login() {
 
             {/* Password Field */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+              <Label htmlFor="password" className="text-sm font-medium text-muted-foreground">
                 Password
               </Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-                  className={`pl-10 pr-10 h-11 bg-gray-50/50 border-gray-200 focus:border-[#714B67] focus:ring-[#714B67]/20 transition-colors ${
+                  className={`pl-10 pr-10 h-11 bg-muted/50 border-border focus:border-[#714B67] focus:ring-[#714B67]/20 transition-colors ${
                     errors.password ? 'border-red-400 focus:border-red-400 focus:ring-red-400/20' : ''
                   }`}
                   {...register('password', {
@@ -170,7 +170,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-muted-foreground transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -189,9 +189,9 @@ export default function Login() {
                 <Checkbox
                   id="rememberMe"
                   onCheckedChange={(checked) => setValue('rememberMe', checked)}
-                  className="border-gray-300 data-[state=checked]:bg-[#714B67] data-[state=checked]:border-[#714B67]"
+                  className="border-border data-[state=checked]:bg-[#714B67] data-[state=checked]:border-[#714B67]"
                 />
-                <Label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer">
+                <Label htmlFor="rememberMe" className="text-sm text-muted-foreground cursor-pointer">
                   Remember me
                 </Label>
               </div>
@@ -222,8 +222,8 @@ export default function Login() {
           </form>
 
           {/* Footer */}
-          <div className="px-8 py-4 bg-gray-50/50 border-t border-gray-100 text-center">
-            <p className="text-xs text-gray-400">
+          <div className="px-8 py-4 bg-muted/50 border-t border-border/50 text-center">
+            <p className="text-xs text-muted-foreground/60">
               Secured by TransitOps &middot; v2.0
             </p>
           </div>

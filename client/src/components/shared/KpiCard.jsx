@@ -28,23 +28,23 @@ export default function KpiCard({ title, value, suffix = '', icon: Icon, color =
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.08, ease: 'easeOut' }}
-      className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden kpi-glow"
+      className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden kpi-glow"
       style={{ '--kpi-color': color }}
     >
       <div className="flex items-start justify-between">
         <div className="space-y-2">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{title}</p>
+          <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wider">{title}</p>
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-gray-900">
+            <span className="text-2xl font-bold text-foreground">
               <AnimatedNumber value={value} />
             </span>
-            {suffix && <span className="text-sm font-medium text-gray-500">{suffix}</span>}
+            {suffix && <span className="text-sm font-medium text-muted-foreground/80">{suffix}</span>}
           </div>
           {trend && (
             <div className={`flex items-center gap-1 text-xs font-medium ${trend.positive ? 'text-green-600' : 'text-red-500'}`}>
               <span>{trend.positive ? '↑' : '↓'}</span>
               <span>{trend.value}%</span>
-              <span className="text-gray-400 font-normal">vs last period</span>
+              <span className="text-muted-foreground/60 font-normal">vs last period</span>
             </div>
           )}
         </div>

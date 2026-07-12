@@ -26,6 +26,7 @@ export async function checkExpiringLicenses() {
     },
     include: { user: true },
   });
+  console.log(expiringDrivers)
 
   if (expiringDrivers.length === 0) {
     console.log("[expiry-check] No expiring licenses in window.");

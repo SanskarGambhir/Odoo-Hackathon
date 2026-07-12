@@ -99,15 +99,15 @@ export default function Settings() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-xl shadow-sm border overflow-hidden"
+        className="bg-card rounded-xl shadow-sm border overflow-hidden"
       >
-        <div className="flex items-center gap-3 px-6 py-4 border-b bg-gray-50/50">
+        <div className="flex items-center gap-3 px-6 py-4 border-b bg-muted/50">
           <div className="w-9 h-9 rounded-lg bg-[#714B67]/10 flex items-center justify-center">
             <Building2 className="w-5 h-5 text-[#714B67]" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">General Settings</h3>
-            <p className="text-sm text-gray-500">Configure your depot and preferences</p>
+            <h3 className="font-semibold text-foreground">General Settings</h3>
+            <p className="text-sm text-muted-foreground/80">Configure your depot and preferences</p>
           </div>
         </div>
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-5">
@@ -184,29 +184,29 @@ export default function Settings() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="bg-white rounded-xl shadow-sm border overflow-hidden"
+        className="bg-card rounded-xl shadow-sm border overflow-hidden"
       >
-        <div className="flex items-center gap-3 px-6 py-4 border-b bg-gray-50/50">
+        <div className="flex items-center gap-3 px-6 py-4 border-b bg-muted/50">
           <div className="w-9 h-9 rounded-lg bg-[#5B899E]/10 flex items-center justify-center">
             <Shield className="w-5 h-5 text-[#5B899E]" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">Role-Based Access Control</h3>
-            <p className="text-sm text-gray-500">Permission matrix for system roles</p>
+            <h3 className="font-semibold text-foreground">Role-Based Access Control</h3>
+            <p className="text-sm text-muted-foreground/80">Permission matrix for system roles</p>
           </div>
         </div>
         <div className="p-6">
           <Table>
             <TableHeader>
-              <TableRow className="bg-gray-50/80">
-                <TableHead className="font-semibold text-gray-700 w-[180px]">Role</TableHead>
-                <TableHead className="font-semibold text-gray-700 text-center">Fleet</TableHead>
-                <TableHead className="font-semibold text-gray-700 text-center">Drivers</TableHead>
-                <TableHead className="font-semibold text-gray-700 text-center">Trips</TableHead>
-                <TableHead className="font-semibold text-gray-700 text-center">
+              <TableRow className="bg-muted/80">
+                <TableHead className="font-semibold text-muted-foreground w-[180px]">Role</TableHead>
+                <TableHead className="font-semibold text-muted-foreground text-center">Fleet</TableHead>
+                <TableHead className="font-semibold text-muted-foreground text-center">Drivers</TableHead>
+                <TableHead className="font-semibold text-muted-foreground text-center">Trips</TableHead>
+                <TableHead className="font-semibold text-muted-foreground text-center">
                   Fuel & Expenses
                 </TableHead>
-                <TableHead className="font-semibold text-gray-700 text-center">Analytics</TableHead>
+                <TableHead className="font-semibold text-muted-foreground text-center">Analytics</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -216,9 +216,9 @@ export default function Settings() {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors"
+                  className="border-b last:border-b-0 hover:bg-muted/50 transition-colors"
                 >
-                  <TableCell className="font-medium text-gray-900">{row.role}</TableCell>
+                  <TableCell className="font-medium text-foreground">{row.role}</TableCell>
                   <TableCell className="text-center">
                     <PermissionIcon allowed={row.fleet} />
                   </TableCell>

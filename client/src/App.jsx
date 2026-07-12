@@ -14,15 +14,17 @@ import FuelExpenses from "./pages/FuelExpenses";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Users from "./pages/Users";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 function App() {
   return (
-    <AuthProvider>
-      <DataProvider>
-        <TooltipProvider>
-          <Router>
-            <Routes>
-              {/* Public */}
+    <ThemeProvider>
+      <AuthProvider>
+        <DataProvider>
+          <TooltipProvider>
+            <Router>
+              <Routes>
+                {/* Public */}
               <Route path="/login" element={<Login />} />
 
               {/* Protected App Shell */}
@@ -46,12 +48,13 @@ function App() {
 
               {/* Redirects */}
               <Route path="/" element={<Navigate to="/login" replace />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
-          </Router>
-        </TooltipProvider>
-      </DataProvider>
-    </AuthProvider>
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </Router>
+          </TooltipProvider>
+        </DataProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

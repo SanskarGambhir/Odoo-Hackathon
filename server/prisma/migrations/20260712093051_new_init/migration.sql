@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "Role" AS ENUM ('FLEET_MANAGER', 'DRIVER', 'SAFETY_OFFICER', 'FINANCIAL_ANALYST');
+CREATE TYPE "Role" AS ENUM ('ADMIN', 'FLEET_MANAGER', 'DRIVER', 'DISPATCHER', 'SAFETY_OFFICER', 'FINANCIAL_ANALYST');
 
 -- CreateEnum
 CREATE TYPE "VehicleStatus" AS ENUM ('AVAILABLE', 'ON_TRIP', 'IN_SHOP', 'RETIRED');
@@ -41,6 +41,13 @@ CREATE TABLE "Vehicle" (
     "acquisitionCost" DECIMAL(12,2) NOT NULL,
     "region" TEXT,
     "status" "VehicleStatus" NOT NULL DEFAULT 'AVAILABLE',
+    "rcNumber" TEXT,
+    "insuranceNumber" TEXT,
+    "insuranceExpiry" TIMESTAMP(3),
+    "pucNumber" TEXT,
+    "pucExpiry" TIMESTAMP(3),
+    "insuranceExpired" BOOLEAN NOT NULL DEFAULT false,
+    "documentUrls" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -52,12 +59,15 @@ CREATE TABLE "Driver" (
     "id" TEXT NOT NULL,
     "userId" TEXT,
     "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
     "licenseNumber" TEXT NOT NULL,
     "licenseCategory" TEXT NOT NULL,
     "licenseExpiry" TIMESTAMP(3) NOT NULL,
     "contactNumber" TEXT NOT NULL,
     "safetyScore" INTEGER NOT NULL DEFAULT 100,
     "status" "DriverStatus" NOT NULL DEFAULT 'AVAILABLE',
+    "licenseFrontUrl" TEXT,
+    "licenseBackUrl" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -140,6 +150,9 @@ CREATE INDEX "Vehicle_status_idx" ON "Vehicle"("status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Driver_userId_key" ON "Driver"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Driver_email_key" ON "Driver"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Driver_licenseNumber_key" ON "Driver"("licenseNumber");

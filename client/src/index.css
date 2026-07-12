@@ -97,6 +97,30 @@
   --sidebar-ring: #a78bfa;
 }
 
+.dark {
+  /* Surfaces */
+  --background: #121212;
+  --foreground: #f5f5f7;
+  --card: #1e1e24;
+  --card-foreground: #f5f5f7;
+  --popover: #1e1e24;
+  --popover-foreground: #f5f5f7;
+  /* Brand */
+  --primary: #a78bfa;
+  --primary-foreground: #ffffff;
+  --secondary: #2d1f3d;
+  --secondary-foreground: #a78bfa;
+  --muted: #2d2d30;
+  --muted-foreground: #a1a1aa;
+  --accent: #2d1f3d;
+  --accent-foreground: #a78bfa;
+  --destructive: #ef4444;
+  /* Borders */
+  --border: #333338;
+  --input: #333338;
+  --ring: #a78bfa;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -151,6 +175,10 @@
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
+.dark .glass-card {
+  background: rgba(30, 30, 36, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
 
 /* ===== Sidebar Gradient ===== */
 .sidebar-gradient {
@@ -160,6 +188,9 @@
 /* ===== Login Background ===== */
 .login-bg {
   background: linear-gradient(135deg, #1a1625 0%, #2d1f3d 30%, #714B67 60%, #5A3C52 100%);
+}
+.dark .login-bg {
+  background: linear-gradient(135deg, #09090b 0%, #1a1625 50%, #2d1f3d 100%);
 }
 
 /* ===== KPI Card Glow ===== */
@@ -214,4 +245,7 @@
 .table-row-hover:hover {
   background: #f9fafb;
   transform: translateX(2px);
+}
+.dark .table-row-hover:hover {
+  background: #27272a;
 }

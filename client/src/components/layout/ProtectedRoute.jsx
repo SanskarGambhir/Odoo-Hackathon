@@ -8,7 +8,7 @@ export default function ProtectedRoute({ children }) {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#714B67] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-border border-t-[#714B67] rounded-full animate-spin" />
       </div>
     );
   }

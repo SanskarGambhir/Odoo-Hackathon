@@ -1,5 +1,7 @@
 import prisma from "../db/prisma.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import PDFDocument from "pdfkit";
+
 
 const toNumber = (value) => (value == null ? 0 : Number(value));
 
@@ -181,4 +183,122 @@ export const exportReportCsv = asyncHandler(async (req, res) => {
     `attachment; filename="${report}.csv"`
   );
   return res.status(200).send(csv);
+});
+const REPORT_LABELS = {
+  "fuel-efficiency": "Fuel Efficiency Report",
+  "fleet-utilization": "Fleet Utilization Report",
+  "operational-cost": "Operational Cost Report",
+  "vehicle-roi": "Vehicle ROI Report",
+};
+
+const REPORT_COLUMNS = {
+  "fuel-efficiency": [
+    { key: "registrationNo", label: "Reg. No", width: 90 },
+    { key: "name", label: "Vehicle", width: 110 },
+    { key: "totalDistance", label: "Distance (km)", width: 100 },
+    { key: "totalFuelLiters", label: "Fuel (L)", width: 80 },
+    { key: "fuelEfficiencyKmPerL", label: "km/L", width: 70 },
+  ],
+  "fleet-utilization": [
+    { key: "totalActiveVehicles", label: "Active Vehicles", width: 160 },
+    { key: "vehiclesOnTrip", label: "On Trip", width: 160 },
+    { key: "fleetUtilizationPercent", label: "Utilization %", width: 160 },
+  ],
+  "operational-cost": [
+    { key: "registrationNo", label: "Reg. No", width: 90 },
+    { key: "name", label: "Vehicle", width: 110 },
+    { key: "fuelCost", label: "Fuel Cost (Rs)", width: 100 },
+    { key: "maintenanceCost", label: "Maint. Cost (Rs)", width: 100 },
+    { key: "totalOperationalCost", label: "Total (Rs)", width: 100 },
+  ],
+  "vehicle-roi": [
+    { key: "registrationNo", label: "Reg. No", width: 80 },
+    { key: "name", label: "Vehicle", width: 90 },
+    { key: "revenue", label: "Revenue (Rs)", width: 90 },
+    { key: "fuelCost", label: "Fuel (Rs)", width: 80 },
+    { key: "maintenanceCost", label: "Maint. (Rs)", width: 80 },
+    { key: "roi", label: "ROI", width: 60 },
+  ],
+};
+
+function drawTable(doc, columns, rows, startY) {
+  const startX = doc.page.margins.left;
+  const rowHeight = 22;
+  let y = startY;
+
+  doc.font("Helvetica-Bold").fontSize(9).fillColor("#111");
+  let x = startX;
+  columns.forEach((col) => {
+    doc.text(col.label, x, y, { width: col.width, align: "left" });
+    x += col.width;
+  });
+  y += rowHeight;
+  doc.moveTo(startX, y - 6).lineTo(x, y - 6).strokeColor("#cccccc").stroke();
+
+  doc.font("Helvetica").fontSize(9).fillColor("#333");
+  if (rows.length === 0) {
+    doc.text("No data available.", startX, y);
+    return y + rowHeight;
+  }
+
+  rows.forEach((row) => {
+    if (y > doc.page.height - doc.page.margins.bottom - rowHeight) {
+      doc.addPage();
+      y = doc.page.margins.top;
+    }
+    let colX = startX;
+    columns.forEach((col) => {
+      const raw = row[col.key];
+      const value =
+        raw == null
+          ? "-"
+          : typeof raw === "number"
+          ? raw.toLocaleString("en-IN")
+          : String(raw);
+      doc.text(value, colX, y, { width: col.width, align: "left" });
+      colX += col.width;
+    });
+    y += rowHeight;
+  });
+
+  return y;
+}
+
+export const exportReportPdf = asyncHandler(async (req, res) => {
+  const { report } = req.query;
+  const builder = REPORT_BUILDERS[report];
+
+  if (!builder) {
+    return res.status(400).json({
+      success: false,
+      message: `Unknown report "${report}". Valid options: ${Object.keys(
+        REPORT_BUILDERS
+      ).join(", ")}`,
+    });
+  }
+
+  const data = await builder();
+  const columns = REPORT_COLUMNS[report];
+  const label = REPORT_LABELS[report];
+
+  const doc = new PDFDocument({ margin: 40, size: "A4" });
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${report}-${Date.now()}.pdf"`
+  );
+  doc.pipe(res);
+
+  doc.font("Helvetica-Bold").fontSize(18).fillColor("#111").text("TransitOps");
+  doc.font("Helvetica").fontSize(12).fillColor("#555").text(label);
+  doc
+    .fontSize(9)
+    .fillColor("#999")
+    .text(`Generated on ${new Date().toLocaleString("en-IN")}`);
+  doc.moveDown(1.5);
+
+  drawTable(doc, columns, data, doc.y);
+
+  doc.end();
 });
