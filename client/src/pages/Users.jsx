@@ -111,7 +111,7 @@ export default function Users() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#714B67] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-border border-t-[#714B67] rounded-full animate-spin" />
       </div>
     );
   }
@@ -132,7 +132,7 @@ export default function Users() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        className="bg-white rounded-xl border shadow-sm overflow-hidden"
+        className="bg-card rounded-xl border shadow-sm overflow-hidden"
       >
         {users.length === 0 ? (
           <EmptyState
@@ -154,12 +154,12 @@ export default function Users() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-50/80">
-                  <TableHead className="font-semibold text-gray-700">Username</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Email</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Role</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Created</TableHead>
-                  <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
+                <TableRow className="bg-muted/80">
+                  <TableHead className="font-semibold text-muted-foreground">Username</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Email</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Role</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Created</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -171,16 +171,16 @@ export default function Users() {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10 }}
                       transition={{ duration: 0.2, delay: idx * 0.03 }}
-                      className="border-b last:border-b-0 transition-colors hover:bg-gray-50/50"
+                      className="border-b last:border-b-0 transition-colors hover:bg-muted/50"
                     >
-                      <TableCell className="font-medium text-gray-900">{u.username}</TableCell>
-                      <TableCell className="text-gray-600">{u.email}</TableCell>
+                      <TableCell className="font-medium text-foreground">{u.username}</TableCell>
+                      <TableCell className="text-muted-foreground">{u.email}</TableCell>
                       <TableCell>
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#714B67]/10 text-[#714B67]">
                           {ROLE_LABELS[u.role] || u.role}
                         </span>
                       </TableCell>
-                      <TableCell className="text-gray-600">
+                      <TableCell className="text-muted-foreground">
                         {new Date(u.createdAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
@@ -188,7 +188,7 @@ export default function Users() {
                           variant="ghost"
                           size="icon"
                           disabled={u.id === currentUser?.id}
-                          className="h-8 w-8 text-gray-400 hover:text-[#E46E78] hover:bg-[#E46E78]/10 disabled:opacity-30"
+                          className="h-8 w-8 text-muted-foreground/60 hover:text-[#E46E78] hover:bg-[#E46E78]/10 disabled:opacity-30"
                           onClick={() => openDeleteDialog(u)}
                           title="Delete user"
                         >
@@ -208,7 +208,7 @@ export default function Users() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold text-gray-900">Add New User</DialogTitle>
+            <DialogTitle className="text-lg font-semibold text-foreground">Add New User</DialogTitle>
           </DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-2">
             {formError && (

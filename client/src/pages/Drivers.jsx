@@ -215,7 +215,7 @@ export default function Drivers() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#714B67] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-border border-t-[#714B67] rounded-full animate-spin" />
       </div>
     );
   }
@@ -240,7 +240,7 @@ export default function Drivers() {
         className="flex flex-col sm:flex-row gap-3"
       >
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
           <Input
             placeholder="Search by name or license..."
             value={searchQuery}
@@ -250,7 +250,7 @@ export default function Drivers() {
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full sm:w-[180px]">
-            <Filter className="w-4 h-4 mr-2 text-gray-400" />
+            <Filter className="w-4 h-4 mr-2 text-muted-foreground/60" />
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -263,7 +263,7 @@ export default function Drivers() {
         </Select>
         <Select value={licenseFilter} onValueChange={setLicenseFilter}>
           <SelectTrigger className="w-full sm:w-[180px]">
-            <Filter className="w-4 h-4 mr-2 text-gray-400" />
+            <Filter className="w-4 h-4 mr-2 text-muted-foreground/60" />
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
@@ -281,7 +281,7 @@ export default function Drivers() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        className="bg-white rounded-xl border shadow-sm overflow-hidden"
+        className="bg-card rounded-xl border shadow-sm overflow-hidden"
       >
         {filteredDrivers.length === 0 ? (
           <EmptyState
@@ -303,16 +303,16 @@ export default function Drivers() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-50/80">
-                  <TableHead className="font-semibold text-gray-700">Name</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Email</TableHead>
-                  <TableHead className="font-semibold text-gray-700">License No.</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Category</TableHead>
-                  <TableHead className="font-semibold text-gray-700">License Expiry</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Contact</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Safety Score</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Status</TableHead>
-                  <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
+                <TableRow className="bg-muted/80">
+                  <TableHead className="font-semibold text-muted-foreground">Name</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Email</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">License No.</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Category</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">License Expiry</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Contact</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Safety Score</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground">Status</TableHead>
+                  <TableHead className="font-semibold text-muted-foreground text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -327,17 +327,17 @@ export default function Drivers() {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 10 }}
                         transition={{ duration: 0.2, delay: idx * 0.03 }}
-                        className={`border-b last:border-b-0 transition-colors hover:bg-gray-50/50 ${
+                        className={`border-b last:border-b-0 transition-colors hover:bg-muted/50 ${
                           isSuspended ? 'bg-red-50/60' : ''
                         }`}
                       >
-                        <TableCell className="font-medium text-gray-900">
+                        <TableCell className="font-medium text-foreground">
                           {driver.name}
                         </TableCell>
-                        <TableCell className="text-gray-600">
+                        <TableCell className="text-muted-foreground">
                           {driver.email}
                         </TableCell>
-                        <TableCell className="font-mono text-sm text-gray-600">
+                        <TableCell className="font-mono text-sm text-muted-foreground">
                           {driver.licenseNumber}
                         </TableCell>
                         <TableCell>
@@ -347,7 +347,7 @@ export default function Drivers() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <span className={expired ? 'text-[#E46E78] font-semibold' : 'text-gray-600'}>
+                            <span className={expired ? 'text-[#E46E78] font-semibold' : 'text-muted-foreground'}>
                               {new Date(driver.licenseExpiry).toLocaleDateString()}
                             </span>
                             {expired && (
@@ -357,7 +357,7 @@ export default function Drivers() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-gray-600">
+                        <TableCell className="text-muted-foreground">
                           {driver.contactNumber}
                         </TableCell>
                         <TableCell>
@@ -373,7 +373,7 @@ export default function Drivers() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-gray-400 hover:text-[#714B67] hover:bg-[#714B67]/10"
+                              className="h-8 w-8 text-muted-foreground/60 hover:text-[#714B67] hover:bg-[#714B67]/10"
                               onClick={() => openEditDialog(driver)}
                             >
                               <Pencil className="w-4 h-4" />
@@ -382,7 +382,7 @@ export default function Drivers() {
                               variant="ghost"
                               size="icon"
                               disabled={isSuspended}
-                              className="h-8 w-8 text-gray-400 hover:text-[#E46E78] hover:bg-[#E46E78]/10 disabled:opacity-30"
+                              className="h-8 w-8 text-muted-foreground/60 hover:text-[#E46E78] hover:bg-[#E46E78]/10 disabled:opacity-30"
                               onClick={() => openSuspendDialog(driver)}
                               title="Suspend driver"
                             >
@@ -404,7 +404,7 @@ export default function Drivers() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold text-gray-900">
+            <DialogTitle className="text-lg font-semibold text-foreground">
               {editingDriver ? 'Edit Driver' : 'Add New Driver'}
             </DialogTitle>
           </DialogHeader>
@@ -416,9 +416,9 @@ export default function Drivers() {
               </div>
             )}
             {!editingDriver && (
-              <div className="space-y-3 rounded-lg border border-dashed border-gray-300 p-3">
-                <p className="text-sm font-medium text-gray-700">
-                  License Images <span className="text-gray-400 font-normal">(optional)</span>
+              <div className="space-y-3 rounded-lg border border-dashed border-border p-3">
+                <p className="text-sm font-medium text-muted-foreground">
+                  License Images <span className="text-muted-foreground/60 font-normal">(optional)</span>
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
@@ -436,7 +436,7 @@ export default function Drivers() {
                       <img
                         src={frontImagePreview}
                         alt="License front preview"
-                        className="mt-1 h-28 w-full rounded-md border border-gray-200 object-cover"
+                        className="mt-1 h-28 w-full rounded-md border border-border object-cover"
                       />
                     )}
                   </div>
@@ -455,7 +455,7 @@ export default function Drivers() {
                       <img
                         src={backImagePreview}
                         alt="License back preview"
-                        className="mt-1 h-28 w-full rounded-md border border-gray-200 object-cover"
+                        className="mt-1 h-28 w-full rounded-md border border-border object-cover"
                       />
                     )}
                   </div>

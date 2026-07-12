@@ -107,7 +107,7 @@ export default function Maintenance() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#714B67] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-border border-t-[#714B67] rounded-full animate-spin" />
       </div>
     );
   }
@@ -212,7 +212,7 @@ export default function Maintenance() {
         className="flex items-start gap-3 rounded-lg border border-[#5B899E]/30 bg-[#5B899E]/5 p-4"
       >
         <ArrowRightLeft className="w-5 h-5 text-[#5B899E] mt-0.5 shrink-0" />
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-muted-foreground">
           <p className="font-medium text-[#5B899E] mb-1">Vehicle Status Transitions</p>
           <p>
             When a maintenance record is <span className="font-semibold text-[#E4A900]">opened</span>,
@@ -229,7 +229,7 @@ export default function Maintenance() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white rounded-xl shadow-sm border overflow-hidden"
+        className="bg-card rounded-xl shadow-sm border overflow-hidden"
       >
         {sortedMaintenance.length === 0 ? (
           <EmptyState
@@ -249,13 +249,13 @@ export default function Maintenance() {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="bg-gray-50/80">
-                <TableHead className="font-semibold text-gray-700">Vehicle</TableHead>
-                <TableHead className="font-semibold text-gray-700">Service Type</TableHead>
-                <TableHead className="font-semibold text-gray-700">Cost</TableHead>
-                <TableHead className="font-semibold text-gray-700">Date</TableHead>
-                <TableHead className="font-semibold text-gray-700">Status</TableHead>
-                <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
+              <TableRow className="bg-muted/80">
+                <TableHead className="font-semibold text-muted-foreground">Vehicle</TableHead>
+                <TableHead className="font-semibold text-muted-foreground">Service Type</TableHead>
+                <TableHead className="font-semibold text-muted-foreground">Cost</TableHead>
+                <TableHead className="font-semibold text-muted-foreground">Date</TableHead>
+                <TableHead className="font-semibold text-muted-foreground">Status</TableHead>
+                <TableHead className="font-semibold text-muted-foreground text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -265,7 +265,7 @@ export default function Maintenance() {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.03 }}
-                  className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors"
+                  className="border-b last:border-b-0 hover:bg-muted/50 transition-colors"
                 >
                   <TableCell className="font-medium">
                     {getVehicleName(record.vehicleId)}
@@ -274,7 +274,7 @@ export default function Maintenance() {
                   <TableCell className="font-medium">
                     ₹{Number(record.cost).toLocaleString('en-IN')}
                   </TableCell>
-                  <TableCell className="text-gray-600">
+                  <TableCell className="text-muted-foreground">
                     {new Date(record.startedAt).toLocaleDateString('en-IN', {
                       day: '2-digit',
                       month: 'short',

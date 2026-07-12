@@ -129,7 +129,7 @@ export default function FuelExpenses() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#714B67] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-border border-t-[#714B67] rounded-full animate-spin" />
       </div>
     );
   }
@@ -145,7 +145,7 @@ export default function FuelExpenses() {
         className="bg-gradient-to-r from-[#714B67] to-[#5A3C52] text-white p-6 rounded-xl shadow-lg"
       >
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-card/15 flex items-center justify-center">
             <TrendingDown className="w-5 h-5" />
           </div>
           <div>
@@ -193,12 +193,12 @@ export default function FuelExpenses() {
         transition={{ delay: 0.15 }}
       >
         <Tabs defaultValue="fuel" className="space-y-4">
-          <TabsList className="bg-gray-100">
-            <TabsTrigger value="fuel" className="data-[state=active]:bg-white data-[state=active]:text-[#714B67]">
+          <TabsList className="bg-muted/80">
+            <TabsTrigger value="fuel" className="data-[state=active]:bg-card data-[state=active]:text-[#714B67]">
               <Fuel className="w-4 h-4 mr-2" />
               Fuel Logs
             </TabsTrigger>
-            <TabsTrigger value="expenses" className="data-[state=active]:bg-white data-[state=active]:text-[#714B67]">
+            <TabsTrigger value="expenses" className="data-[state=active]:bg-card data-[state=active]:text-[#714B67]">
               <Receipt className="w-4 h-4 mr-2" />
               Expenses
             </TabsTrigger>
@@ -273,7 +273,7 @@ export default function FuelExpenses() {
               </Dialog>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="bg-card rounded-xl shadow-sm border overflow-hidden">
               {fuelLogs.length === 0 ? (
                 <EmptyState
                   icon={Fuel}
@@ -292,11 +292,11 @@ export default function FuelExpenses() {
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gray-50/80">
-                      <TableHead className="font-semibold text-gray-700">Vehicle</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Date</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Liters</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Cost</TableHead>
+                    <TableRow className="bg-muted/80">
+                      <TableHead className="font-semibold text-muted-foreground">Vehicle</TableHead>
+                      <TableHead className="font-semibold text-muted-foreground">Date</TableHead>
+                      <TableHead className="font-semibold text-muted-foreground">Liters</TableHead>
+                      <TableHead className="font-semibold text-muted-foreground">Cost</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -306,12 +306,12 @@ export default function FuelExpenses() {
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.03 }}
-                        className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors"
+                        className="border-b last:border-b-0 hover:bg-muted/50 transition-colors"
                       >
                         <TableCell className="font-medium">
                           {getVehicleName(log.vehicleId)}
                         </TableCell>
-                        <TableCell className="text-gray-600">
+                        <TableCell className="text-muted-foreground">
                           {new Date(log.loggedAt).toLocaleDateString('en-IN', {
                             day: '2-digit',
                             month: 'short',
@@ -427,7 +427,7 @@ export default function FuelExpenses() {
               </Dialog>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="bg-card rounded-xl shadow-sm border overflow-hidden">
               {expenses.length === 0 ? (
                 <EmptyState
                   icon={Receipt}
@@ -446,11 +446,11 @@ export default function FuelExpenses() {
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gray-50/80">
-                      <TableHead className="font-semibold text-gray-700">Trip</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Vehicle</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Type</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Amount</TableHead>
+                    <TableRow className="bg-muted/80">
+                      <TableHead className="font-semibold text-muted-foreground">Trip</TableHead>
+                      <TableHead className="font-semibold text-muted-foreground">Vehicle</TableHead>
+                      <TableHead className="font-semibold text-muted-foreground">Type</TableHead>
+                      <TableHead className="font-semibold text-muted-foreground">Amount</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -460,14 +460,14 @@ export default function FuelExpenses() {
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.03 }}
-                        className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors"
+                        className="border-b last:border-b-0 hover:bg-muted/50 transition-colors"
                       >
                         <TableCell className="font-medium">
                           {getTripLabel(exp.tripId)}
                         </TableCell>
                         <TableCell>{getVehicleName(exp.vehicleId)}</TableCell>
                         <TableCell>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted/80 text-muted-foreground">
                             {exp.type}
                           </span>
                         </TableCell>

@@ -34,8 +34,8 @@ const STATUS_COLORS = {
 const CustomTooltip = ({ active, payload, label, prefix = '₹' }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white rounded-lg shadow-lg border px-4 py-3 text-sm">
-        <p className="font-medium text-gray-900">{label}</p>
+      <div className="bg-card rounded-lg shadow-lg border px-4 py-3 text-sm">
+        <p className="font-medium text-foreground">{label}</p>
         {payload.map((entry, i) => (
           <p key={i} style={{ color: entry.color || entry.fill }} className="mt-1">
             {prefix}{Number(entry.value).toLocaleString('en-IN')}
@@ -157,7 +157,7 @@ export default function Analytics() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#714B67] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-border border-t-[#714B67] rounded-full animate-spin" />
       </div>
     );
   }
@@ -180,10 +180,10 @@ export default function Analytics() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-xl shadow-sm border p-6"
+          className="bg-card rounded-xl shadow-sm border p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">Fuel Efficiency</h3>
-          <p className="text-sm text-gray-500 mb-4">Distance per liter, by vehicle</p>
+          <h3 className="text-lg font-semibold text-foreground mb-1">Fuel Efficiency</h3>
+          <p className="text-sm text-muted-foreground/80 mb-4">Distance per liter, by vehicle</p>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={fuelEfficiencyChartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -208,10 +208,10 @@ export default function Analytics() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-xl shadow-sm border p-6"
+          className="bg-card rounded-xl shadow-sm border p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">Top Costliest Vehicles</h3>
-          <p className="text-sm text-gray-500 mb-4">Vehicles with highest operational costs</p>
+          <h3 className="text-lg font-semibold text-foreground mb-1">Top Costliest Vehicles</h3>
+          <p className="text-sm text-muted-foreground/80 mb-4">Vehicles with highest operational costs</p>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart
               data={topCostliestVehicles}
@@ -244,10 +244,10 @@ export default function Analytics() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="bg-white rounded-xl shadow-sm border p-6"
+        className="bg-card rounded-xl shadow-sm border p-6"
       >
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">Vehicle Status Distribution</h3>
-        <p className="text-sm text-gray-500 mb-4">Current status breakdown of fleet vehicles</p>
+        <h3 className="text-lg font-semibold text-foreground mb-1">Vehicle Status Distribution</h3>
+        <p className="text-sm text-muted-foreground/80 mb-4">Current status breakdown of fleet vehicles</p>
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie

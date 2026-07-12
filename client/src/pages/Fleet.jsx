@@ -203,7 +203,7 @@ export default function Fleet() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#714B67] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-border border-t-[#714B67] rounded-full animate-spin" />
       </div>
     );
   }
@@ -225,16 +225,16 @@ export default function Fleet() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+        className="bg-card rounded-xl border border-border shadow-sm p-4"
       >
         <div className="flex items-center gap-3 flex-wrap">
           <div className="relative flex-1 min-w-[220px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
             <Input
               placeholder="Search by registration or name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-9 text-sm bg-gray-50/50"
+              className="pl-10 h-9 text-sm bg-muted/50"
             />
           </div>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -269,7 +269,7 @@ export default function Fleet() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
+        className="bg-card rounded-xl border border-border shadow-sm overflow-hidden"
       >
         {filteredVehicles.length === 0 ? (
           <div className="p-12">
@@ -298,29 +298,29 @@ export default function Fleet() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-50/50">
-                  <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <TableRow className="bg-muted/50">
+                  <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Reg. Number
                   </TableHead>
-                  <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Name
                   </TableHead>
-                  <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Type
                   </TableHead>
-                  <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Max Load
                   </TableHead>
-                  <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Odometer
                   </TableHead>
-                  <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Acq. Cost
                   </TableHead>
-                  <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Status
                   </TableHead>
-                  <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider text-right">
+                  <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
                     Actions
                   </TableHead>
                 </TableRow>
@@ -329,24 +329,24 @@ export default function Fleet() {
                 {filteredVehicles.map((vehicle) => (
                   <TableRow
                     key={vehicle.id}
-                    className="hover:bg-gray-50/50 transition-colors"
+                    className="hover:bg-muted/50 transition-colors"
                   >
-                    <TableCell className="font-mono text-sm font-medium text-gray-900">
+                    <TableCell className="font-mono text-sm font-medium text-foreground">
                       {vehicle.registrationNo}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-700">
+                    <TableCell className="text-sm text-muted-foreground">
                       {vehicle.name}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600">
+                    <TableCell className="text-sm text-muted-foreground">
                       {vehicle.type}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600">
+                    <TableCell className="text-sm text-muted-foreground">
                       {fmt(vehicle.maxLoadKg)} kg
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600">
+                    <TableCell className="text-sm text-muted-foreground">
                       {fmt(vehicle.odometer)} km
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600">
+                    <TableCell className="text-sm text-muted-foreground">
                       {fmtCurrency(vehicle.acquisitionCost)}
                     </TableCell>
                     <TableCell>
@@ -357,7 +357,7 @@ export default function Fleet() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-gray-500 hover:text-[#5B899E] hover:bg-[#5B899E]/10"
+                          className="h-8 w-8 text-muted-foreground/80 hover:text-[#5B899E] hover:bg-[#5B899E]/10"
                           onClick={() => handleView(vehicle)}
                         >
                           <Eye className="w-4 h-4" />
@@ -365,7 +365,7 @@ export default function Fleet() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-gray-500 hover:text-[#714B67] hover:bg-[#714B67]/10"
+                          className="h-8 w-8 text-muted-foreground/80 hover:text-[#714B67] hover:bg-[#714B67]/10"
                           onClick={() => handleEdit(vehicle)}
                         >
                           <Pencil className="w-4 h-4" />
@@ -374,7 +374,7 @@ export default function Fleet() {
                           variant="ghost"
                           size="icon"
                           disabled={vehicle.status === 'RETIRED'}
-                          className="h-8 w-8 text-gray-500 hover:text-[#E46E78] hover:bg-[#E46E78]/10 disabled:opacity-30"
+                          className="h-8 w-8 text-muted-foreground/80 hover:text-[#E46E78] hover:bg-[#E46E78]/10 disabled:opacity-30"
                           onClick={() => handleDeleteClick(vehicle)}
                           title="Retire vehicle"
                         >
@@ -394,10 +394,10 @@ export default function Fleet() {
       <Dialog open={formDialogOpen} onOpenChange={setFormDialogOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold text-gray-900">
+            <DialogTitle className="text-lg font-semibold text-foreground">
               {editingVehicle ? 'Edit Vehicle' : 'Add New Vehicle'}
             </DialogTitle>
-            <DialogDescription className="text-sm text-gray-500">
+            <DialogDescription className="text-sm text-muted-foreground/80">
               {editingVehicle
                 ? 'Update the details for this vehicle.'
                 : 'Enter the details for the new vehicle.'}
@@ -577,7 +577,7 @@ export default function Fleet() {
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <DialogTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
               <Truck className="w-5 h-5 text-[#714B67]" />
               Vehicle Details
             </DialogTitle>
@@ -621,7 +621,7 @@ export default function Fleet() {
                 value={viewingVehicle.region || '—'}
               />
               <div className="col-span-2">
-                <span className="text-xs text-gray-500 block mb-1">Status</span>
+                <span className="text-xs text-muted-foreground/80 block mb-1">Status</span>
                 <StatusBadge status={viewingVehicle.status} />
               </div>
             </div>
@@ -665,11 +665,11 @@ export default function Fleet() {
 function DetailItem({ icon, label, value }) {
   return (
     <div className="space-y-1">
-      <span className="text-xs text-gray-500 flex items-center gap-1.5">
-        {icon && <span className="text-gray-400">{icon}</span>}
+      <span className="text-xs text-muted-foreground/80 flex items-center gap-1.5">
+        {icon && <span className="text-muted-foreground/60">{icon}</span>}
         {label}
       </span>
-      <p className="text-sm font-medium text-gray-900">{value ?? '—'}</p>
+      <p className="text-sm font-medium text-foreground">{value ?? '—'}</p>
     </div>
   );
 }
