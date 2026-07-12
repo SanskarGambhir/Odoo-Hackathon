@@ -10,7 +10,7 @@ import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-router.use(verifyJWT);
+// router.use(verifyJWT);
 
 router.route("/").post(createVehicle).get(getVehicles);
 router

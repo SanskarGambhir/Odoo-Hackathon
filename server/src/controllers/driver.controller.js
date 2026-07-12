@@ -45,6 +45,7 @@ export const createDriver = asyncHandler(async (req, res) => {
 });
 
 export const getDrivers = asyncHandler(async (req, res) => {
+  console.log("Query parameters:", req.query); // Log the query parameters for debugging
   const { status, licenseCategory } = req.query;
 
   const drivers = await prisma.driver.findMany({
@@ -54,7 +55,7 @@ export const getDrivers = asyncHandler(async (req, res) => {
     },
     orderBy: { createdAt: "desc" },
   });
-
+  console.log("Retrieved drivers:", drivers); // Log the retrieved drivers for debugging
   return res.status(200).json({ success: true, data: drivers });
 });
 

@@ -13,7 +13,7 @@ import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-router.use(verifyJWT);
+// router.use(verifyJWT);
 
 router.route("/available-vehicles").get(getAvailableVehicles);
 router.route("/available-drivers").get(getAvailableDrivers);
