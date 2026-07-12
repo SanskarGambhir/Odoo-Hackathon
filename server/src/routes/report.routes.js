@@ -5,6 +5,7 @@ import {
   getOperationalCostReport,
   getVehicleRoiReport,
   exportReportCsv,
+  exportReportPdf,
 } from "../controllers/report.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -17,5 +18,6 @@ router.route("/fleet-utilization").get(getFleetUtilizationReport);
 router.route("/operational-cost").get(getOperationalCostReport);
 router.route("/vehicle-roi").get(getVehicleRoiReport);
 router.route("/export.csv").get(exportReportCsv);
+router.route("/export.pdf").get(exportReportPdf);
 
 export default router;
