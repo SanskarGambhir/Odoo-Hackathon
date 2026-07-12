@@ -54,11 +54,38 @@ export const registerUser = async (req, res) => {
       },
     });
 
-    return res.status(201).json({
-      success: true,
-      message: "User registered successfully",
-      user,
+    // Generate tokens
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    // Save refresh token in DB
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        refreshToken,
+      },
     });
+
+    return res
+      .status(201)
+      .cookie(
+        "accessToken",
+        accessToken,
+        cookieOptions
+      )
+      .cookie(
+        "refreshToken",
+        refreshToken,
+        cookieOptions
+      )
+      .json({
+        success: true,
+        message:
+          "User registered and logged in successfully",
+        user,
+      });
   } catch (error) {
     if (error.code === "P2002") {
       return res.status(409).json({
