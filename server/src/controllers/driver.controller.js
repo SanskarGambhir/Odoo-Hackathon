@@ -55,7 +55,6 @@ export const getDrivers = asyncHandler(async (req, res) => {
     },
     orderBy: { createdAt: "desc" },
   });
-  console.log("Retrieved drivers:", drivers); // Log the retrieved drivers for debugging
   return res.status(200).json({ success: true, data: drivers });
 });
 

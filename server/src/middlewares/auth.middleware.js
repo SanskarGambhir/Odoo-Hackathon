@@ -30,6 +30,7 @@ export const verifyJWT = async (req, res, next) => {
         id: true,
         username: true,
         email: true,
+        role: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -53,4 +54,16 @@ export const verifyJWT = async (req, res, next) => {
         "Invalid Access Token",
     });
   }
+};
+
+export const authorizeRoles = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "You do not have permission to perform this action",
+      });
+    }
+    next();
+  };
 };

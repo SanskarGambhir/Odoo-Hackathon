@@ -5,8 +5,8 @@ import {
   Wrench,
   Plus,
   CheckCircle2,
-  Info,
   ArrowRightLeft,
+  AlertCircle,
 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import PageHeader from '../components/shared/PageHeader';
@@ -43,7 +43,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
 
 const SERVICE_TYPES = [
   'Oil Change',
@@ -55,20 +54,20 @@ const SERVICE_TYPES = [
 ];
 
 export default function Maintenance() {
-  const { vehicles, maintenance, addMaintenance, closeMaintenance } = useData();
+  const { vehicles, maintenance, isLoading, addMaintenance, closeMaintenance } = useData();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm({
     defaultValues: {
       vehicleId: '',
-      serviceType: '',
+      description: '',
       cost: '',
-      date: '',
-      status: 'OPEN',
     },
   });
 
-  const activeVehicles = vehicles.filter((v) => v.status !== 'RETIRED');
+  const activeVehicles = vehicles.filter((v) => v.status !== 'RETIRED' && v.status !== 'ON_TRIP');
 
   const getVehicleName = (vehicleId) => {
     const vehicle = vehicles.find((v) => v.id === vehicleId);
@@ -76,20 +75,42 @@ export default function Maintenance() {
   };
 
   const sortedMaintenance = [...maintenance].sort(
-    (a, b) => new Date(b.date) - new Date(a.date)
+    (a, b) => new Date(b.startedAt) - new Date(a.startedAt)
   );
 
-  const onSubmit = (data) => {
-    addMaintenance({
-      vehicleId: data.vehicleId,
-      serviceType: data.serviceType,
-      cost: Number(data.cost),
-      date: data.date,
-      status: data.status,
-    });
-    reset();
-    setDialogOpen(false);
+  const onSubmit = async (data) => {
+    setFormError('');
+    setIsSubmitting(true);
+    try {
+      await addMaintenance({
+        vehicleId: data.vehicleId,
+        description: data.description,
+        cost: data.cost ? Number(data.cost) : 0,
+      });
+      reset();
+      setDialogOpen(false);
+    } catch (err) {
+      setFormError(err.response?.data?.message || 'Failed to create maintenance record.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  const handleClose = async (id) => {
+    try {
+      await closeMaintenance(id);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#714B67] rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -108,6 +129,12 @@ export default function Maintenance() {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
+              {formError && (
+                <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  {formError}
+                </div>
+              )}
               {/* Vehicle Select */}
               <div className="space-y-2">
                 <Label htmlFor="vehicleId">Vehicle</Label>
@@ -121,19 +148,19 @@ export default function Maintenance() {
                   <SelectContent>
                     {activeVehicles.map((v) => (
                       <SelectItem key={v.id} value={v.id}>
-                        {v.name} — {v.registrationNumber}
+                        {v.name} — {v.registrationNo}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Service Type */}
+              {/* Description */}
               <div className="space-y-2">
-                <Label htmlFor="serviceType">Service Type</Label>
+                <Label htmlFor="description">Service Type</Label>
                 <Select
-                  onValueChange={(val) => setValue('serviceType', val)}
-                  value={watch('serviceType')}
+                  onValueChange={(val) => setValue('description', val)}
+                  value={watch('description')}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select service type" />
@@ -146,6 +173,9 @@ export default function Maintenance() {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.description && (
+                  <p className="text-sm text-[#E46E78]">{errors.description.message}</p>
+                )}
               </div>
 
               {/* Cost */}
@@ -162,41 +192,12 @@ export default function Maintenance() {
                 )}
               </div>
 
-              {/* Date */}
-              <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  {...register('date', { required: 'Date is required' })}
-                />
-                {errors.date && (
-                  <p className="text-sm text-[#E46E78]">{errors.date.message}</p>
-                )}
-              </div>
-
-              {/* Status */}
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  onValueChange={(val) => setValue('status', val)}
-                  value={watch('status')}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="OPEN">Open</SelectItem>
-                    <SelectItem value="CLOSED">Closed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               <Button
                 type="submit"
+                disabled={isSubmitting}
                 className="w-full bg-[#714B67] hover:bg-[#5A3C52] text-white"
               >
-                Create Record
+                {isSubmitting ? 'Creating...' : 'Create Record'}
               </Button>
             </form>
           </DialogContent>
@@ -249,7 +250,6 @@ export default function Maintenance() {
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50/80">
-                <TableHead className="font-semibold text-gray-700">ID</TableHead>
                 <TableHead className="font-semibold text-gray-700">Vehicle</TableHead>
                 <TableHead className="font-semibold text-gray-700">Service Type</TableHead>
                 <TableHead className="font-semibold text-gray-700">Cost</TableHead>
@@ -267,18 +267,15 @@ export default function Maintenance() {
                   transition={{ delay: index * 0.03 }}
                   className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors"
                 >
-                  <TableCell className="font-mono text-sm text-gray-500">
-                    {record.id}
-                  </TableCell>
                   <TableCell className="font-medium">
                     {getVehicleName(record.vehicleId)}
                   </TableCell>
-                  <TableCell>{record.serviceType}</TableCell>
+                  <TableCell>{record.description}</TableCell>
                   <TableCell className="font-medium">
                     ₹{Number(record.cost).toLocaleString('en-IN')}
                   </TableCell>
                   <TableCell className="text-gray-600">
-                    {new Date(record.date).toLocaleDateString('en-IN', {
+                    {new Date(record.startedAt).toLocaleDateString('en-IN', {
                       day: '2-digit',
                       month: 'short',
                       year: 'numeric',
@@ -295,7 +292,7 @@ export default function Maintenance() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => closeMaintenance(record.id)}
+                              onClick={() => handleClose(record.id)}
                               className="border-[#21B799] text-[#21B799] hover:bg-[#21B799]/10"
                             >
                               <CheckCircle2 className="w-4 h-4 mr-1" />

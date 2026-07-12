@@ -470,8 +470,16 @@ export const monthlyRevenueData = [
   { month: 'Jul', revenue: 355000 },
 ];
 
+// Routes every authenticated user can reach, regardless of role
+export const GLOBAL_ROUTES = ['/dashboard', '/settings'];
+
 // Role-based access configuration
 export const ROLE_ACCESS = {
+  'Admin': {
+    label: 'Admin',
+    routes: ['/dashboard', '/fleet', '/drivers', '/trips', '/maintenance', '/fuel-expenses', '/analytics', '/settings', '/users'],
+    modules: { fleet: true, drivers: true, trips: true, fuel: true, analytics: true, maintenance: true },
+  },
   'Fleet Manager': {
     label: 'Fleet Manager',
     routes: ['/dashboard', '/fleet', '/maintenance', '/analytics'],
@@ -492,7 +500,25 @@ export const ROLE_ACCESS = {
     routes: ['/dashboard', '/fuel-expenses', '/analytics'],
     modules: { fleet: false, drivers: false, trips: false, fuel: true, analytics: true, maintenance: false },
   },
+  'Driver': {
+    label: 'Driver',
+    routes: ['/dashboard', '/trips'],
+    modules: { fleet: false, drivers: false, trips: true, fuel: false, analytics: false, maintenance: false },
+  },
 };
+
+// Maps the backend's Role enum (Prisma) to the friendly labels used by ROLE_ACCESS above
+export const ROLE_LABELS = {
+  ADMIN: 'Admin',
+  FLEET_MANAGER: 'Fleet Manager',
+  DISPATCHER: 'Dispatcher',
+  SAFETY_OFFICER: 'Safety Officer',
+  FINANCIAL_ANALYST: 'Financial Analyst',
+  DRIVER: 'Driver',
+};
+
+// Backend Role enum values paired with friendly labels, for role-picker dropdowns
+export const ASSIGNABLE_ROLES = Object.entries(ROLE_LABELS).map(([value, label]) => ({ value, label }));
 
 export const defaultSettings = {
   depotName: 'TransitOps Central Depot',

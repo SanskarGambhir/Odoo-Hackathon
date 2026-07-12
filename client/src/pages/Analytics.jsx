@@ -1,3 +1,4 @@
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Fuel,
@@ -19,9 +20,9 @@ import {
   Legend,
 } from 'recharts';
 import { useData } from '../contexts/DataContext';
+import * as reportsApi from '../api/reports.js';
 import PageHeader from '../components/shared/PageHeader';
 import KpiCard from '../components/shared/KpiCard';
-import { cn } from '@/lib/utils';
 
 const STATUS_COLORS = {
   AVAILABLE: '#21B799',
@@ -47,43 +48,119 @@ const CustomTooltip = ({ active, payload, label, prefix = '₹' }) => {
 };
 
 export default function Analytics() {
-  const { analytics } = useData();
+  const { vehicles } = useData();
+
+  const [fuelEfficiency, setFuelEfficiency] = useState([]);
+  const [fleetUtilization, setFleetUtilization] = useState(null);
+  const [operationalCost, setOperationalCost] = useState([]);
+  const [vehicleRoi, setVehicleRoi] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      setIsLoading(true);
+      try {
+        const [feRes, fuRes, ocRes, roiRes] = await Promise.all([
+          reportsApi.getFuelEfficiencyReport(),
+          reportsApi.getFleetUtilizationReport(),
+          reportsApi.getOperationalCostReport(),
+          reportsApi.getVehicleRoiReport(),
+        ]);
+        setFuelEfficiency(feRes.data.data);
+        setFleetUtilization(fuRes.data.data);
+        setOperationalCost(ocRes.data.data);
+        setVehicleRoi(roiRes.data.data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, []);
+
+  const avgFuelEfficiency = useMemo(() => {
+    const totalDistance = fuelEfficiency.reduce((s, v) => s + (v.totalDistance || 0), 0);
+    const totalLiters = fuelEfficiency.reduce((s, v) => s + (v.totalFuelLiters || 0), 0);
+    return totalLiters > 0 ? Number((totalDistance / totalLiters).toFixed(1)) : 0;
+  }, [fuelEfficiency]);
+
+  const totalOperationalCost = useMemo(
+    () => operationalCost.reduce((s, v) => s + (v.totalOperationalCost || 0), 0),
+    [operationalCost]
+  );
+
+  const avgVehicleRoi = useMemo(() => {
+    const withRoi = vehicleRoi.filter((v) => v.roi != null);
+    if (withRoi.length === 0) return 0;
+    const sum = withRoi.reduce((s, v) => s + v.roi, 0);
+    return Number(((sum / withRoi.length) * 100).toFixed(1));
+  }, [vehicleRoi]);
 
   const kpis = [
     {
       title: 'Fuel Efficiency',
-      value: analytics.fuelEfficiency,
+      value: avgFuelEfficiency,
       suffix: 'km/L',
       icon: Fuel,
       color: '#017E84',
     },
     {
       title: 'Fleet Utilization',
-      value: analytics.fleetUtilization,
+      value: fleetUtilization?.fleetUtilizationPercent ?? 0,
       suffix: '%',
       icon: Truck,
       color: '#714B67',
     },
     {
       title: 'Operational Cost',
-      value: Math.round((analytics.totalOperationalCost || 0) / 1000),
+      value: Math.round(totalOperationalCost / 1000),
       suffix: 'K ₹',
       icon: IndianRupee,
       color: '#E4A900',
     },
     {
-      title: 'Vehicle ROI',
-      value: analytics.vehicleROI,
+      title: 'Avg. Vehicle ROI',
+      value: avgVehicleRoi,
       suffix: '%',
       icon: TrendingUp,
       color: '#21B799',
     },
   ];
 
-  const statusDistData = (analytics.vehicleStatusDist || []).map((item) => ({
-    ...item,
-    fill: STATUS_COLORS[item.name] || '#9CA3AF',
-  }));
+  const fuelEfficiencyChartData = useMemo(
+    () =>
+      fuelEfficiency
+        .filter((v) => v.fuelEfficiencyKmPerL != null)
+        .map((v) => ({ name: v.registrationNo, value: v.fuelEfficiencyKmPerL })),
+    [fuelEfficiency]
+  );
+
+  const topCostliestVehicles = useMemo(
+    () =>
+      [...operationalCost]
+        .sort((a, b) => b.totalOperationalCost - a.totalOperationalCost)
+        .slice(0, 5)
+        .map((v) => ({ name: v.registrationNo, cost: v.totalOperationalCost })),
+    [operationalCost]
+  );
+
+  const statusDistData = useMemo(() => {
+    const counts = { AVAILABLE: 0, ON_TRIP: 0, IN_SHOP: 0, RETIRED: 0 };
+    vehicles.forEach((v) => {
+      if (counts[v.status] != null) counts[v.status] += 1;
+    });
+    return Object.entries(counts)
+      .filter(([, value]) => value > 0)
+      .map(([name, value]) => ({ name, value, fill: STATUS_COLORS[name] || '#9CA3AF' }));
+  }, [vehicles]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#714B67] rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -96,32 +173,32 @@ export default function Analytics() {
         ))}
       </div>
 
-      {/* Charts Row: Revenue + Costliest Vehicles */}
+      {/* Charts Row: Fuel Efficiency + Costliest Vehicles */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Revenue */}
+        {/* Fuel Efficiency by Vehicle */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="bg-white rounded-xl shadow-sm border p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">Monthly Revenue</h3>
-          <p className="text-sm text-gray-500 mb-4">Revenue trend across months</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">Fuel Efficiency</h3>
+          <p className="text-sm text-gray-500 mb-4">Distance per liter, by vehicle</p>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={analytics.monthlyRevenueData || []} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+            <BarChart data={fuelEfficiencyChartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis
-                dataKey="month"
+                dataKey="name"
                 tick={{ fontSize: 12, fill: '#6B7280' }}
                 axisLine={{ stroke: '#E5E7EB' }}
               />
               <YAxis
                 tick={{ fontSize: 12, fill: '#6B7280' }}
                 axisLine={{ stroke: '#E5E7EB' }}
-                tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
+                tickFormatter={(v) => `${v} km/L`}
               />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="revenue" fill="#714B67" radius={[4, 4, 0, 0]} />
+              <Tooltip content={<CustomTooltip prefix="" />} />
+              <Bar dataKey="value" fill="#017E84" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </motion.div>
@@ -137,7 +214,7 @@ export default function Analytics() {
           <p className="text-sm text-gray-500 mb-4">Vehicles with highest operational costs</p>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart
-              data={analytics.vehicleCosts || []}
+              data={topCostliestVehicles}
               layout="vertical"
               margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
             >

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Truck,
@@ -8,7 +8,6 @@ import {
   Clock,
   Users,
   BarChart3,
-  Filter,
   SlidersHorizontal,
 } from 'lucide-react';
 import {
@@ -35,6 +34,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { useData } from '../contexts/DataContext';
+import * as dashboardApi from '../api/dashboard.js';
 import PageHeader from '../components/shared/PageHeader';
 import KpiCard from '../components/shared/KpiCard';
 import StatusBadge from '../components/shared/StatusBadge';
@@ -49,20 +49,30 @@ const STATUS_COLORS = {
   RETIRED: '#9CA3AF',
 };
 
-const CHART_COLORS = ['#21B799', '#5B899E', '#E4A900', '#9CA3AF', '#714B67', '#E46E78'];
-
 export default function Dashboard() {
-  const { vehicles, drivers, trips, analytics } = useData();
+  const { vehicles, drivers, trips, isLoading } = useData();
 
   const [typeFilter, setTypeFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [regionFilter, setRegionFilter] = useState('All');
+  const [kpis, setKpis] = useState(null);
 
   // Derive unique regions from vehicles
   const regions = useMemo(() => {
     const regionSet = new Set(vehicles.map((v) => v.region).filter(Boolean));
     return ['All', ...Array.from(regionSet)];
   }, [vehicles]);
+
+  // Fetch fleet-wide KPIs from the backend whenever type/region filters change
+  useEffect(() => {
+    dashboardApi
+      .getKpis({
+        ...(typeFilter !== 'All' && { type: typeFilter }),
+        ...(regionFilter !== 'All' && { region: regionFilter }),
+      })
+      .then(({ data }) => setKpis(data.data))
+      .catch(() => setKpis(null));
+  }, [typeFilter, regionFilter]);
 
   // Filter trips based on local state
   const filteredTrips = useMemo(() => {
@@ -103,7 +113,7 @@ export default function Dashboard() {
 
   const getVehicleName = (id) => {
     const v = vehicleMap.get(id);
-    return v ? `${v.registrationNumber}` : '—';
+    return v ? v.registrationNo : '—';
   };
 
   const getDriverName = (id) => {
@@ -112,65 +122,66 @@ export default function Dashboard() {
   };
 
   // KPI definitions
-  const kpis = [
+  const kpiCards = [
     {
       title: 'Active Vehicles',
-      value: analytics.activeVehicles ?? 0,
+      value: kpis?.activeVehicles ?? 0,
       icon: Truck,
       color: '#714B67',
     },
     {
       title: 'Available',
-      value: analytics.availableVehicles ?? 0,
+      value: kpis?.availableVehicles ?? 0,
       icon: CircleCheck,
       color: '#21B799',
     },
     {
       title: 'In Maintenance',
-      value: analytics.inMaintenance ?? 0,
+      value: kpis?.vehiclesInMaintenance ?? 0,
       icon: Wrench,
       color: '#E4A900',
     },
     {
       title: 'Active Trips',
-      value: analytics.activeTrips ?? 0,
+      value: kpis?.activeTrips ?? 0,
       icon: Route,
       color: '#5B899E',
     },
     {
       title: 'Pending Trips',
-      value: analytics.pendingTrips ?? 0,
+      value: kpis?.pendingTrips ?? 0,
       icon: Clock,
       color: '#E4A900',
     },
     {
       title: 'Drivers On Duty',
-      value: analytics.driversOnDuty ?? 0,
+      value: kpis?.driversOnDuty ?? 0,
       icon: Users,
       color: '#017E84',
     },
     {
       title: 'Fleet Utilization',
-      value: analytics.fleetUtilization ?? 0,
+      value: kpis?.fleetUtilization ?? 0,
       suffix: '%',
       icon: BarChart3,
       color: '#714B67',
     },
   ];
 
-  // Pie chart data
+  // Pie chart data — vehicle status distribution, computed from the live vehicles list
   const pieData = useMemo(() => {
-    if (!analytics.vehicleStatusDist) return [];
-    return Object.entries(analytics.vehicleStatusDist).map(([name, value]) => ({
-      name,
-      value,
-    }));
-  }, [analytics.vehicleStatusDist]);
+    const counts = { AVAILABLE: 0, ON_TRIP: 0, IN_SHOP: 0, RETIRED: 0 };
+    vehicles.forEach((v) => {
+      if (counts[v.status] != null) counts[v.status] += 1;
+    });
+    return Object.entries(counts)
+      .filter(([, value]) => value > 0)
+      .map(([name, value]) => ({ name, value }));
+  }, [vehicles]);
 
-  const formatEta = (eta) => {
-    if (!eta) return '—';
-    const date = new Date(eta);
-    return date.toLocaleDateString('en-IN', {
+  const formatDate = (date) => {
+    if (!date) return '—';
+    return new Date(date).toLocaleDateString('en-IN', {
       day: '2-digit',
       month: 'short',
       hour: '2-digit',
@@ -178,13 +189,21 @@ export default function Dashboard() {
     });
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#714B67] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader title="Operations Dashboard" subtitle="Real-time fleet overview and trip monitoring" />
 
       {/* KPI Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-        {kpis.map((kpi, index) => (
+        {kpiCards.map((kpi, index) => (
           <KpiCard
             key={kpi.title}
             title={kpi.title}
@@ -278,7 +297,7 @@ export default function Dashboard() {
                 <TableHeader>
                   <TableRow className="bg-gray-50/50">
                     <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Trip ID
+                      Route
                     </TableHead>
                     <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Vehicle
@@ -290,18 +309,18 @@ export default function Dashboard() {
                       Status
                     </TableHead>
                     <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      ETA
+                      Created
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTrips.map((trip, idx) => (
+                  {filteredTrips.map((trip) => (
                     <TableRow
                       key={trip.id}
                       className="hover:bg-gray-50/50 transition-colors"
                     >
-                      <TableCell className="font-mono text-sm text-gray-700">
-                        {trip.id}
+                      <TableCell className="text-sm text-gray-700">
+                        {trip.source} → {trip.destination}
                       </TableCell>
                       <TableCell className="text-sm text-gray-700">
                         {getVehicleName(trip.vehicleId)}
@@ -313,7 +332,7 @@ export default function Dashboard() {
                         <StatusBadge status={trip.status} />
                       </TableCell>
                       <TableCell className="text-sm text-gray-500">
-                        {formatEta(trip.eta)}
+                        {formatDate(trip.createdAt)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -361,7 +380,7 @@ export default function Dashboard() {
                     {pieData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={STATUS_COLORS[entry.name] || CHART_COLORS[index % CHART_COLORS.length]}
+                        fill={STATUS_COLORS[entry.name] || '#9CA3AF'}
                       />
                     ))}
                   </Pie>

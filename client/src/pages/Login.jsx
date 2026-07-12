@@ -2,34 +2,19 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
-import { Route, Mail, Lock, ChevronDown, Eye, EyeOff, AlertCircle, ShieldAlert } from 'lucide-react';
+import { Route, Mail, Lock, Eye, EyeOff, AlertCircle, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '../contexts/AuthContext';
-
-const ROLES = [
-  { value: 'fleet_manager', label: 'Fleet Manager' },
-  { value: 'dispatcher', label: 'Dispatcher' },
-  { value: 'safety_officer', label: 'Safety Officer' },
-  { value: 'financial_analyst', label: 'Financial Analyst' },
-];
 
 export default function Login() {
   const navigate = useNavigate();
   const { login, error } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState('');
 
   const {
     register,
@@ -40,7 +25,6 @@ export default function Login() {
     defaultValues: {
       email: '',
       password: '',
-      role: '',
       rememberMe: false,
     },
   });
@@ -48,7 +32,7 @@ export default function Login() {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      const success = await login(data.email, data.password, data.role || selectedRole);
+      const success = await login(data.email, data.password);
       if (success) {
         navigate('/dashboard');
       }
@@ -197,34 +181,6 @@ export default function Login() {
                   {errors.password.message}
                 </p>
               )}
-            </div>
-
-            {/* Role Selector */}
-            <div className="space-y-2">
-              <Label htmlFor="role" className="text-sm font-medium text-gray-700">
-                Role
-              </Label>
-              <Select
-                value={selectedRole}
-                onValueChange={(value) => {
-                  setSelectedRole(value);
-                  setValue('role', value);
-                }}
-              >
-                <SelectTrigger
-                  id="role"
-                  className="h-11 bg-gray-50/50 border-gray-200 focus:border-[#714B67] focus:ring-[#714B67]/20"
-                >
-                  <SelectValue placeholder="Select your role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLES.map((role) => (
-                    <SelectItem key={role.value} value={role.value}>
-                      {role.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Remember Me & Forgot Password */}

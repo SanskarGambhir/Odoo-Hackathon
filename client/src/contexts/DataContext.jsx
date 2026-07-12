@@ -1,235 +1,205 @@
-import { createContext, useContext, useState, useCallback, useMemo } from 'react';
-import {
-  initialVehicles, initialDrivers, initialTrips,
-  initialMaintenance, initialFuelLogs, initialExpenses,
-  defaultSettings, monthlyRevenueData,
-} from '../data/mockData';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { defaultSettings } from '../data/mockData';
+import { useAuth } from './AuthContext';
+import * as vehiclesApi from '../api/vehicles.js';
+import * as driversApi from '../api/drivers.js';
+import * as tripsApi from '../api/trips.js';
+import * as maintenanceApi from '../api/maintenance.js';
+import * as fuelApi from '../api/fuel.js';
+import * as expensesApi from '../api/expenses.js';
 
 const DataContext = createContext(null);
 
-let nextId = 100;
-const genId = (prefix) => `${prefix}-${String(++nextId).padStart(3, '0')}`;
+const upsert = (list, item) => {
+  const exists = list.some((x) => x.id === item.id);
+  return exists ? list.map((x) => (x.id === item.id ? item : x)) : [...list, item];
+};
 
 export function DataProvider({ children }) {
-  const [vehicles, setVehicles] = useState(initialVehicles);
-  const [drivers, setDrivers] = useState(initialDrivers);
-  const [trips, setTrips] = useState(initialTrips);
-  const [maintenance, setMaintenance] = useState(initialMaintenance);
-  const [fuelLogs, setFuelLogs] = useState(initialFuelLogs);
-  const [expenses, setExpenses] = useState(initialExpenses);
+  const { isAuthenticated } = useAuth();
+  const [vehicles, setVehicles] = useState([]);
+  const [drivers, setDrivers] = useState([]);
+  const [trips, setTrips] = useState([]);
+  const [maintenance, setMaintenance] = useState([]);
+  const [fuelLogs, setFuelLogs] = useState([]);
+  const [expenses, setExpenses] = useState([]);
   const [settings, setSettings] = useState(defaultSettings);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const refreshVehicles = useCallback(async () => {
+    const { data } = await vehiclesApi.getVehicles();
+    setVehicles(data.data);
+  }, []);
+
+  const refreshDrivers = useCallback(async () => {
+    const { data } = await driversApi.getDrivers();
+    setDrivers(data.data);
+  }, []);
+
+  const refreshTrips = useCallback(async () => {
+    const { data } = await tripsApi.getTrips();
+    setTrips(data.data);
+  }, []);
+
+  const refreshMaintenance = useCallback(async () => {
+    const { data } = await maintenanceApi.getMaintenanceLogs();
+    setMaintenance(data.data);
+  }, []);
+
+  const refreshFuelLogs = useCallback(async () => {
+    const { data } = await fuelApi.getFuelLogs();
+    setFuelLogs(data.data);
+  }, []);
+
+  const refreshExpenses = useCallback(async () => {
+    const { data } = await expensesApi.getExpenses();
+    setExpenses(data.data);
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
+    (async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([
+          refreshVehicles(),
+          refreshDrivers(),
+          refreshTrips(),
+          refreshMaintenance(),
+          refreshFuelLogs(),
+          refreshExpenses(),
+        ]);
+        setError(null);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to load fleet data');
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, [isAuthenticated, refreshVehicles, refreshDrivers, refreshTrips, refreshMaintenance, refreshFuelLogs, refreshExpenses]);
 
   // ========== VEHICLE CRUD ==========
-  const addVehicle = useCallback((data) => {
-    const vehicle = { ...data, id: genId('VH') };
-    setVehicles(prev => [...prev, vehicle]);
-    return vehicle;
+  const addVehicle = useCallback(async (data) => {
+    const { data: res } = await vehiclesApi.createVehicle(data);
+    setVehicles((prev) => [...prev, res.data]);
+    return res.data;
   }, []);
 
-  const updateVehicle = useCallback((id, data) => {
-    setVehicles(prev => prev.map(v => v.id === id ? { ...v, ...data } : v));
+  const updateVehicle = useCallback(async (id, data) => {
+    const { data: res } = await vehiclesApi.updateVehicle(id, data);
+    setVehicles((prev) => upsert(prev, res.data));
+    return res.data;
   }, []);
 
-  const deleteVehicle = useCallback((id) => {
-    setVehicles(prev => prev.filter(v => v.id !== id));
+  // Vehicles are soft-deleted server-side (status -> RETIRED), not removed
+  const deleteVehicle = useCallback(async (id) => {
+    const { data: res } = await vehiclesApi.deleteVehicle(id);
+    setVehicles((prev) => upsert(prev, res.data));
+    return res.data;
   }, []);
 
   // ========== DRIVER CRUD ==========
-  const addDriver = useCallback((data) => {
-    const driver = { ...data, id: genId('DR') };
-    setDrivers(prev => [...prev, driver]);
-    return driver;
+  const addDriver = useCallback(async (data) => {
+    const { data: res } = await driversApi.createDriver(data);
+    setDrivers((prev) => [...prev, res.data]);
+    return res.data;
   }, []);
 
-  const updateDriver = useCallback((id, data) => {
-    setDrivers(prev => prev.map(d => d.id === id ? { ...d, ...data } : d));
+  const updateDriver = useCallback(async (id, data) => {
+    const { data: res } = await driversApi.updateDriver(id, data);
+    setDrivers((prev) => upsert(prev, res.data));
+    return res.data;
   }, []);
 
-  const deleteDriver = useCallback((id) => {
-    setDrivers(prev => prev.filter(d => d.id !== id));
+  const deleteDriver = useCallback(async (id) => {
+    await driversApi.deleteDriver(id);
+    setDrivers((prev) => prev.filter((d) => d.id !== id));
+  }, []);
+
+  const suspendDriver = useCallback(async (id) => {
+    const { data: res } = await driversApi.suspendDriver(id);
+    setDrivers((prev) => upsert(prev, res.data));
+    return res.data;
   }, []);
 
   // ========== TRIP CRUD + DISPATCH LOGIC ==========
-  const addTrip = useCallback((data) => {
-    const trip = { ...data, id: genId('TR'), status: 'DRAFT', createdAt: new Date().toISOString(), revenue: 0 };
-    setTrips(prev => [...prev, trip]);
-    return trip;
+  const addTrip = useCallback(async (data) => {
+    const { data: res } = await tripsApi.createTrip(data);
+    setTrips((prev) => [...prev, res.data]);
+    return res.data;
   }, []);
 
-  const updateTrip = useCallback((id, data) => {
-    setTrips(prev => prev.map(t => t.id === id ? { ...t, ...data } : t));
-  }, []);
+  const dispatchTrip = useCallback(async (tripId) => {
+    const { data: res } = await tripsApi.dispatchTrip(tripId);
+    setTrips((prev) => upsert(prev, res.data));
+    await Promise.all([refreshVehicles(), refreshDrivers()]);
+    return res.data;
+  }, [refreshVehicles, refreshDrivers]);
 
-  const dispatchTrip = useCallback((tripId) => {
-    setTrips(prev => prev.map(t => {
-      if (t.id === tripId && t.status === 'DRAFT') {
-        // Calculate ETA (rough: 50km/h average)
-        const hours = (t.plannedDistanceKm || 500) / 50;
-        const eta = new Date(Date.now() + hours * 3600000).toISOString();
-        // Set revenue estimate (₹60/km)
-        const revenue = (t.plannedDistanceKm || 500) * 60;
-        // Update vehicle status
-        if (t.vehicleId) {
-          setVehicles(vPrev => vPrev.map(v => v.id === t.vehicleId ? { ...v, status: 'ON_TRIP' } : v));
-        }
-        // Update driver status
-        if (t.driverId) {
-          setDrivers(dPrev => dPrev.map(d => d.id === t.driverId ? { ...d, status: 'ON_TRIP' } : d));
-        }
-        return { ...t, status: 'DISPATCHED', eta, revenue };
-      }
-      return t;
-    }));
-  }, []);
+  const completeTrip = useCallback(async (tripId, data) => {
+    const { data: res } = await tripsApi.completeTrip(tripId, data);
+    setTrips((prev) => upsert(prev, res.data));
+    await Promise.all([refreshVehicles(), refreshDrivers()]);
+    return res.data;
+  }, [refreshVehicles, refreshDrivers]);
 
-  const completeTrip = useCallback((tripId) => {
-    setTrips(prev => prev.map(t => {
-      if (t.id === tripId && t.status === 'DISPATCHED') {
-        // Release vehicle
-        if (t.vehicleId) {
-          setVehicles(vPrev => vPrev.map(v => v.id === t.vehicleId ? { ...v, status: 'AVAILABLE' } : v));
-        }
-        // Release driver
-        if (t.driverId) {
-          setDrivers(dPrev => dPrev.map(d => d.id === t.driverId ? { ...d, status: 'AVAILABLE' } : d));
-        }
-        return { ...t, status: 'COMPLETED' };
-      }
-      return t;
-    }));
-  }, []);
-
-  const cancelTrip = useCallback((tripId) => {
-    setTrips(prev => prev.map(t => {
-      if (t.id === tripId && (t.status === 'DRAFT' || t.status === 'DISPATCHED')) {
-        // Release vehicle
-        if (t.vehicleId) {
-          setVehicles(vPrev => vPrev.map(v => v.id === t.vehicleId ? { ...v, status: 'AVAILABLE' } : v));
-        }
-        // Release driver
-        if (t.driverId) {
-          setDrivers(dPrev => dPrev.map(d => d.id === t.driverId ? { ...d, status: 'AVAILABLE' } : d));
-        }
-        return { ...t, status: 'CANCELLED', revenue: 0 };
-      }
-      return t;
-    }));
-  }, []);
+  const cancelTrip = useCallback(async (tripId) => {
+    const { data: res } = await tripsApi.cancelTrip(tripId);
+    setTrips((prev) => upsert(prev, res.data));
+    await Promise.all([refreshVehicles(), refreshDrivers()]);
+    return res.data;
+  }, [refreshVehicles, refreshDrivers]);
 
   // ========== MAINTENANCE CRUD ==========
-  const addMaintenance = useCallback((data) => {
-    const record = { ...data, id: genId('MN') };
-    setMaintenance(prev => [...prev, record]);
-    // If OPEN, set vehicle to IN_SHOP
-    if (data.status === 'OPEN' && data.vehicleId) {
-      setVehicles(prev => prev.map(v => v.id === data.vehicleId ? { ...v, status: 'IN_SHOP' } : v));
-    }
-    return record;
-  }, []);
+  const addMaintenance = useCallback(async (data) => {
+    const { data: res } = await maintenanceApi.createMaintenanceLog(data);
+    setMaintenance((prev) => [...prev, res.data]);
+    await refreshVehicles();
+    return res.data;
+  }, [refreshVehicles]);
 
-  const closeMaintenance = useCallback((id) => {
-    setMaintenance(prev => prev.map(m => {
-      if (m.id === id && m.status === 'OPEN') {
-        // Set vehicle back to AVAILABLE (unless RETIRED)
-        if (m.vehicleId) {
-          setVehicles(vPrev => vPrev.map(v => {
-            if (v.id === m.vehicleId && v.status !== 'RETIRED') {
-              return { ...v, status: 'AVAILABLE' };
-            }
-            return v;
-          }));
-        }
-        return { ...m, status: 'CLOSED' };
-      }
-      return m;
-    }));
-  }, []);
+  const closeMaintenance = useCallback(async (id) => {
+    const { data: res } = await maintenanceApi.closeMaintenanceLog(id);
+    setMaintenance((prev) => upsert(prev, res.data));
+    await refreshVehicles();
+    return res.data;
+  }, [refreshVehicles]);
 
   // ========== FUEL LOG CRUD ==========
-  const addFuelLog = useCallback((data) => {
-    const log = { ...data, id: genId('FL') };
-    setFuelLogs(prev => [...prev, log]);
-    return log;
+  const addFuelLog = useCallback(async (data) => {
+    const { data: res } = await fuelApi.createFuelLog(data);
+    setFuelLogs((prev) => [...prev, res.data]);
+    return res.data;
   }, []);
 
   // ========== EXPENSE CRUD ==========
-  const addExpense = useCallback((data) => {
-    const expense = { ...data, id: genId('EX') };
-    setExpenses(prev => [...prev, expense]);
-    return expense;
+  const addExpense = useCallback(async (data) => {
+    const { data: res } = await expensesApi.createExpense(data);
+    setExpenses((prev) => [...prev, res.data]);
+    return res.data;
   }, []);
 
-  // ========== SETTINGS ==========
+  // ========== SETTINGS (client-side only, no backend endpoint) ==========
   const updateSettings = useCallback((data) => {
-    setSettings(prev => ({ ...prev, ...data }));
+    setSettings((prev) => ({ ...prev, ...data }));
   }, []);
-
-  // ========== COMPUTED VALUES ==========
-  const analytics = useMemo(() => {
-    const totalVehicles = vehicles.length;
-    const activeVehicles = vehicles.filter(v => v.status !== 'RETIRED').length;
-    const availableVehicles = vehicles.filter(v => v.status === 'AVAILABLE').length;
-    const inMaintenance = vehicles.filter(v => v.status === 'IN_SHOP').length;
-    const onTrip = vehicles.filter(v => v.status === 'ON_TRIP').length;
-
-    const activeTrips = trips.filter(t => t.status === 'DISPATCHED').length;
-    const pendingTrips = trips.filter(t => t.status === 'DRAFT').length;
-    const completedTrips = trips.filter(t => t.status === 'COMPLETED');
-
-    const driversOnDuty = drivers.filter(d => d.status === 'ON_TRIP').length;
-
-    const fleetUtilization = totalVehicles > 0 ? Math.round((onTrip / activeVehicles) * 100) : 0;
-
-    const totalFuelCost = fuelLogs.reduce((sum, fl) => sum + fl.cost, 0);
-    const totalFuelLiters = fuelLogs.reduce((sum, fl) => sum + fl.liters, 0);
-    const totalMaintenanceCost = maintenance.reduce((sum, m) => sum + m.cost, 0);
-    const totalExpenseCost = expenses.reduce((sum, e) => sum + e.amount, 0);
-    const totalOperationalCost = totalFuelCost + totalMaintenanceCost + totalExpenseCost;
-
-    const totalDistance = completedTrips.reduce((sum, t) => sum + (t.plannedDistanceKm || 0), 0);
-    const fuelEfficiency = totalFuelLiters > 0 ? (totalDistance / totalFuelLiters).toFixed(1) : 0;
-
-    const totalRevenue = trips.reduce((sum, t) => sum + (t.revenue || 0), 0);
-
-    const totalAcquisitionCost = vehicles.reduce((sum, v) => sum + (v.acquisitionCost || 0), 0);
-    const vehicleROI = totalAcquisitionCost > 0
-      ? (((totalRevenue - (totalMaintenanceCost + totalFuelCost)) / totalAcquisitionCost) * 100).toFixed(1)
-      : 0;
-
-    // Vehicle status distribution
-    const vehicleStatusDist = [
-      { name: 'Available', value: availableVehicles, fill: '#21B799' },
-      { name: 'On Trip', value: onTrip, fill: '#5B899E' },
-      { name: 'In Shop', value: inMaintenance, fill: '#E4A900' },
-      { name: 'Retired', value: vehicles.filter(v => v.status === 'RETIRED').length, fill: '#E46E78' },
-    ];
-
-    // Top costliest vehicles
-    const vehicleCosts = vehicles.map(v => {
-      const vFuel = fuelLogs.filter(f => f.vehicleId === v.id).reduce((s, f) => s + f.cost, 0);
-      const vMaint = maintenance.filter(m => m.vehicleId === v.id).reduce((s, m) => s + m.cost, 0);
-      const vExp = expenses.filter(e => e.vehicleId === v.id).reduce((s, e) => s + e.amount, 0);
-      return { name: v.name, cost: vFuel + vMaint + vExp, id: v.id };
-    }).sort((a, b) => b.cost - a.cost).slice(0, 5);
-
-    return {
-      totalVehicles, activeVehicles, availableVehicles, inMaintenance, onTrip,
-      activeTrips, pendingTrips, driversOnDuty, fleetUtilization,
-      totalFuelCost, totalMaintenanceCost, totalExpenseCost, totalOperationalCost,
-      fuelEfficiency, totalRevenue, vehicleROI,
-      vehicleStatusDist, vehicleCosts, monthlyRevenueData,
-    };
-  }, [vehicles, drivers, trips, maintenance, fuelLogs, expenses]);
 
   const value = {
     // State
-    vehicles, drivers, trips, maintenance, fuelLogs, expenses, settings, analytics,
+    vehicles, drivers, trips, maintenance, fuelLogs, expenses, settings,
+    isLoading, error,
+    // Refetch
+    refreshVehicles, refreshDrivers, refreshTrips, refreshMaintenance, refreshFuelLogs, refreshExpenses,
     // Vehicle ops
     addVehicle, updateVehicle, deleteVehicle,
     // Driver ops
-    addDriver, updateDriver, deleteDriver,
+    addDriver, updateDriver, deleteDriver, suspendDriver,
     // Trip ops
-    addTrip, updateTrip, dispatchTrip, completeTrip, cancelTrip,
+    addTrip, dispatchTrip, completeTrip, cancelTrip,
     // Maintenance ops
     addMaintenance, closeMaintenance,
     // Fuel ops

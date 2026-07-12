@@ -15,3 +15,7 @@ export const logoutUser = () => {
 export const getCurrentUser = () => {
   return api.get("/api/v1/auth/current-user");
 };
+
+export const refreshAccessToken = () => {
+  return api.get("/api/v1/auth/refresh-token");
+};
