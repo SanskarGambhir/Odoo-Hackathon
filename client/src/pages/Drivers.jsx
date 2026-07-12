@@ -60,6 +60,7 @@ function getScoreColor(score) {
 
 const defaultFormValues = {
   name: '',
+  email: '',
   licenseNumber: '',
   licenseCategory: 'LMV',
   licenseExpiry: '',
@@ -86,6 +87,7 @@ export default function Drivers() {
       const matchesSearch =
         !searchQuery ||
         d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        d.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         d.licenseNumber.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = statusFilter === 'ALL' || d.status === statusFilter;
       const matchesLicense =
@@ -106,6 +108,7 @@ export default function Drivers() {
     setFormError('');
     form.reset({
       name: driver.name,
+      email: driver.email,
       licenseNumber: driver.licenseNumber,
       licenseCategory: driver.licenseCategory,
       licenseExpiry: driver.licenseExpiry
@@ -250,6 +253,7 @@ export default function Drivers() {
               <TableHeader>
                 <TableRow className="bg-gray-50/80">
                   <TableHead className="font-semibold text-gray-700">Name</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Email</TableHead>
                   <TableHead className="font-semibold text-gray-700">License No.</TableHead>
                   <TableHead className="font-semibold text-gray-700">Category</TableHead>
                   <TableHead className="font-semibold text-gray-700">License Expiry</TableHead>
@@ -277,6 +281,9 @@ export default function Drivers() {
                       >
                         <TableCell className="font-medium text-gray-900">
                           {driver.name}
+                        </TableCell>
+                        <TableCell className="text-gray-600">
+                          {driver.email}
                         </TableCell>
                         <TableCell className="font-mono text-sm text-gray-600">
                           {driver.licenseNumber}
@@ -369,6 +376,22 @@ export default function Drivers() {
                 />
                 {form.formState.errors.name && (
                   <p className="text-xs text-[#E46E78]">{form.formState.errors.name.message}</p>
+                )}
+              </div>
+
+              {/* Email */}
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="email">
+                  Email <span className="text-[#E46E78]">*</span>
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="driver@example.com"
+                  {...form.register('email', { required: 'Email is required' })}
+                />
+                {form.formState.errors.email && (
+                  <p className="text-xs text-[#E46E78]">{form.formState.errors.email.message}</p>
                 )}
               </div>
 

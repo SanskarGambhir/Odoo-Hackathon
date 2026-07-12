@@ -11,7 +11,6 @@ const USERS = [
   { username: "dispatcher", email: "dispatcher@transitops.com", role: "DISPATCHER" },
   { username: "safetyofficer", email: "safetyofficer@transitops.com", role: "SAFETY_OFFICER" },
   { username: "financialanalyst", email: "financialanalyst@transitops.com", role: "FINANCIAL_ANALYST" },
-  { username: "driver", email: "driver@transitops.com", role: "DRIVER" },
 ];
 
 async function main() {

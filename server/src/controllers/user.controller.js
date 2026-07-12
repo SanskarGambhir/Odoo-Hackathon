@@ -5,7 +5,6 @@ import asyncHandler from "../utils/asyncHandler.js";
 const VALID_ROLES = [
   "ADMIN",
   "FLEET_MANAGER",
-  "DRIVER",
   "DISPATCHER",
   "SAFETY_OFFICER",
   "FINANCIAL_ANALYST",

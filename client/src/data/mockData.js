@@ -500,21 +500,17 @@ export const ROLE_ACCESS = {
     routes: ['/dashboard', '/fuel-expenses', '/analytics'],
     modules: { fleet: false, drivers: false, trips: false, fuel: true, analytics: true, maintenance: false },
   },
-  'Driver': {
-    label: 'Driver',
-    routes: ['/dashboard', '/trips'],
-    modules: { fleet: false, drivers: false, trips: true, fuel: false, analytics: false, maintenance: false },
-  },
 };
 
-// Maps the backend's Role enum (Prisma) to the friendly labels used by ROLE_ACCESS above
+// Maps the backend's Role enum (Prisma) to the friendly labels used by ROLE_ACCESS above.
+// Note: DRIVER is intentionally omitted — drivers are managed as Driver records (with their
+// own contact email), not as login users, so it's not an assignable/selectable role.
 export const ROLE_LABELS = {
   ADMIN: 'Admin',
   FLEET_MANAGER: 'Fleet Manager',
   DISPATCHER: 'Dispatcher',
   SAFETY_OFFICER: 'Safety Officer',
   FINANCIAL_ANALYST: 'Financial Analyst',
-  DRIVER: 'Driver',
 };
 
 // Backend Role enum values paired with friendly labels, for role-picker dropdowns

@@ -38,7 +38,7 @@ const defaultFormValues = {
   username: '',
   email: '',
   password: '',
-  role: 'DRIVER',
+  role: 'FLEET_MANAGER',
 };
 
 export default function Users() {

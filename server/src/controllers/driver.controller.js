@@ -4,6 +4,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 export const createDriver = asyncHandler(async (req, res) => {
   const {
     name,
+    email,
     licenseNumber,
     licenseCategory,
     licenseExpiry,
@@ -12,11 +13,11 @@ export const createDriver = asyncHandler(async (req, res) => {
     userId,
   } = req.body;
 
-  if (!name || !licenseNumber || !licenseCategory || !licenseExpiry || !contactNumber) {
+  if (!name || !email || !licenseNumber || !licenseCategory || !licenseExpiry || !contactNumber) {
     return res.status(400).json({
       success: false,
       message:
-        "name, licenseNumber, licenseCategory, licenseExpiry and contactNumber are required",
+        "name, email, licenseNumber, licenseCategory, licenseExpiry and contactNumber are required",
     });
   }
 
@@ -24,6 +25,7 @@ export const createDriver = asyncHandler(async (req, res) => {
     const driver = await prisma.driver.create({
       data: {
         name,
+        email: email.trim().toLowerCase(),
         licenseNumber,
         licenseCategory,
         licenseExpiry: new Date(licenseExpiry),
@@ -37,7 +39,7 @@ export const createDriver = asyncHandler(async (req, res) => {
     if (error.code === "P2002") {
       return res.status(409).json({
         success: false,
-        message: "A driver with this license number already exists",
+        message: "A driver with this license number or email already exists",
       });
     }
     throw error;
@@ -75,6 +77,7 @@ export const getDriverById = asyncHandler(async (req, res) => {
 export const updateDriver = asyncHandler(async (req, res) => {
   const {
     name,
+    email,
     licenseNumber,
     licenseCategory,
     licenseExpiry,
@@ -92,21 +95,32 @@ export const updateDriver = asyncHandler(async (req, res) => {
       .json({ success: false, message: "Driver not found" });
   }
 
-  const updated = await prisma.driver.update({
-    where: { id: req.params.id },
-    data: {
-      ...(name !== undefined && { name }),
-      ...(licenseNumber !== undefined && { licenseNumber }),
-      ...(licenseCategory !== undefined && { licenseCategory }),
-      ...(licenseExpiry !== undefined && {
-        licenseExpiry: new Date(licenseExpiry),
-      }),
-      ...(contactNumber !== undefined && { contactNumber }),
-      ...(safetyScore !== undefined && { safetyScore }),
-    },
-  });
+  try {
+    const updated = await prisma.driver.update({
+      where: { id: req.params.id },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(email !== undefined && { email: email.trim().toLowerCase() }),
+        ...(licenseNumber !== undefined && { licenseNumber }),
+        ...(licenseCategory !== undefined && { licenseCategory }),
+        ...(licenseExpiry !== undefined && {
+          licenseExpiry: new Date(licenseExpiry),
+        }),
+        ...(contactNumber !== undefined && { contactNumber }),
+        ...(safetyScore !== undefined && { safetyScore }),
+      },
+    });
 
-  return res.status(200).json({ success: true, data: updated });
+    return res.status(200).json({ success: true, data: updated });
+  } catch (error) {
+    if (error.code === "P2002") {
+      return res.status(409).json({
+        success: false,
+        message: "A driver with this license number or email already exists",
+      });
+    }
+    throw error;
+  }
 });
 
 export const suspendDriver = asyncHandler(async (req, res) => {

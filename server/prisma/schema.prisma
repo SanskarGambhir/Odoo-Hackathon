@@ -92,6 +92,7 @@ model Driver {
   user   User?   @relation(fields: [userId], references: [id])
 
   name            String
+  email           String       @unique
   licenseNumber   String       @unique
   licenseCategory String // LMV, HMV, etc.
   licenseExpiry   DateTime
