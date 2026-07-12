@@ -25,7 +25,7 @@ Dates must be in YYYY-MM-DD format. If a field cannot be read or the relevant do
 
 export async function extractVehicleDocumentDetails(files) {
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.1-flash-lite",
     contents: [
       ...files.map((file) => ({
         inlineData: {

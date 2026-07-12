@@ -56,17 +56,26 @@ export function insuranceExpiredEmail(vehicle, recipientEmail) {
 }
 
 export function licenseExpiryEmail(driver, daysRemaining) {
+  const isExpired = daysRemaining < 0;
+  const daysAgo = Math.abs(daysRemaining);
+
   return {
-    to: driver.user.email,
-    subject: `⚠ License Expiring in ${daysRemaining} Day${daysRemaining === 1 ? "" : "s"}`,
+    to: driver.email,
+    subject: isExpired
+      ? `⚠ License Expired — ${driver.name}`
+      : `⚠ License Expiring in ${daysRemaining} Day${daysRemaining === 1 ? "" : "s"}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 480px;">
         <h2 style="color:#dc2626;">License Expiry Notice</h2>
         <p>Hi ${driver.name},</p>
-        <p>Your driving license (<strong>${driver.licenseNumber}</strong>) expires on
-        <strong>${new Date(driver.licenseExpiry).toLocaleDateString()}</strong>
-        — ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} from now.</p>
-        <p>Please renew it soon. Drivers with expired licenses cannot be assigned to
+        <p>Your driving license (<strong>${driver.licenseNumber}</strong>)
+        ${isExpired
+          ? `expired on <strong>${new Date(driver.licenseExpiry).toLocaleDateString()}</strong>
+             — ${daysAgo} day${daysAgo === 1 ? "" : "s"} ago.`
+          : `expires on <strong>${new Date(driver.licenseExpiry).toLocaleDateString()}</strong>
+             — ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} from now.`}
+        </p>
+        <p>Please renew it ${isExpired ? "immediately" : "soon"}. Drivers with expired licenses cannot be assigned to
         trips in TransitOps and will be automatically restricted.</p>
         <p style="color:#6b7280; font-size: 12px; margin-top: 24px;">
           Automated notice — TransitOps Fleet Management.

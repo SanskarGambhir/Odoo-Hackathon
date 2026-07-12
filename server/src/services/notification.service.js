@@ -6,9 +6,9 @@ import { sendEmail, licenseExpiryEmail, insuranceExpiredEmail } from "./email.se
 const EXPIRY_WINDOW_DAYS = 30; // decide as a team what "soon" means
 
 /**
- * Finds drivers whose license expires within the window and emails them.
- * NOTE: Driver has no direct `email` field in your schema — email only
- * exists via the optional User relation (driver.user.email). Drivers with
+ * Finds drivers whose license has already expired OR expires within the window,
+ * and emails them. NOTE: Driver has no direct `email` field in your schema — email
+ * only exists via the optional User relation (driver.user.email). Drivers with
  * no linked user account are skipped (logged, not silently dropped).
  */
 export async function checkExpiringLicenses() {
@@ -18,15 +18,15 @@ export async function checkExpiringLicenses() {
 
   const expiringDrivers = await prisma.driver.findMany({
     where: {
+      // No lower bound: this also catches licenses that already expired,
+      // not just ones expiring within the window ahead.
       licenseExpiry: {
-        gte: now,
         lte: windowEnd,
       },
       status: { not: "SUSPENDED" },
     },
     include: { user: true },
   });
-  console.log(expiringDrivers)
 
   if (expiringDrivers.length === 0) {
     console.log("[expiry-check] No expiring licenses in window.");
@@ -37,7 +37,8 @@ export async function checkExpiringLicenses() {
   let skipped = 0;
 
   for (const driver of expiringDrivers) {
-    if (!driver.user?.email) {
+    console.log(driver)
+    if (!driver.email) {
       console.warn(
         `[expiry-check] Skipping ${driver.name} (${driver.licenseNumber}) — no linked user/email.`
       );
@@ -113,7 +114,7 @@ export function startExpiryCron() {
   checkExpiringLicenses();
   checkVehicleInsurance();
 
-  cron.schedule("*/10 * * * *", () => {
+  cron.schedule("*/30 * * * *", () => {
     console.log("[expiry-check] Running scheduled check...");
     checkExpiringLicenses();
     checkVehicleInsurance();

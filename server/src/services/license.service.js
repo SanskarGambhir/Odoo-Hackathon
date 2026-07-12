@@ -4,7 +4,7 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-console.log(ai);
+
 
 const EXTRACTION_PROMPT = `
 These are the front and back of the SAME driver's license.
