@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { useState as useStateAlias } from 'react'; // skip if already imported
+import { Download, Loader2 } from 'lucide-react';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
+import { Button } from '../components/ui/button';
 import {
   Fuel,
   Truck,
@@ -55,6 +59,19 @@ export default function Analytics() {
   const [operationalCost, setOperationalCost] = useState([]);
   const [vehicleRoi, setVehicleRoi] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedReport, setSelectedReport] = useState('fuel-efficiency');
+const [isExporting, setIsExporting] = useState(false);
+
+const handleGenerateReport = async () => {
+  setIsExporting(true);
+  try {
+    await reportsApi.downloadReportPdf(selectedReport);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setIsExporting(false);
+  }
+};
 
   useEffect(() => {
     (async () => {
@@ -165,6 +182,27 @@ export default function Analytics() {
   return (
     <div className="space-y-6">
       <PageHeader title="Analytics" subtitle="Fleet performance insights" />
+  <div className="flex items-center gap-2">
+    <Select value={selectedReport} onValueChange={setSelectedReport}>
+      <SelectTrigger className="w-[200px]">
+        <SelectValue placeholder="Select report" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="fuel-efficiency">Fuel Efficiency</SelectItem>
+        <SelectItem value="fleet-utilization">Fleet Utilization</SelectItem>
+        <SelectItem value="operational-cost">Operational Cost</SelectItem>
+        <SelectItem value="vehicle-roi">Vehicle ROI</SelectItem>
+      </SelectContent>
+    </Select>
+    <Button onClick={handleGenerateReport} disabled={isExporting}>
+      {isExporting ? (
+        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+      ) : (
+        <Download className="w-4 h-4 mr-2" />
+      )}
+      Generate PDF
+    </Button>
+  </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
