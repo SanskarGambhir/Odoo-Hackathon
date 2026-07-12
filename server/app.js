@@ -10,6 +10,7 @@ import fuelRouter from "./src/routes/fuel.routes.js";
 import expenseRouter from "./src/routes/expense.routes.js";
 import dashboardRouter from "./src/routes/dashboard.routes.js";
 import reportRouter from "./src/routes/report.routes.js";
+import userRouter from "./src/routes/user.routes.js";
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use("/api/v1/fuel-logs", fuelRouter);
 app.use("/api/v1/expenses", expenseRouter);
 app.use("/api/v1/dashboard", dashboardRouter);
 app.use("/api/v1/reports", reportRouter);
+app.use("/api/v1/users", userRouter);
 
 app.get("/", (req, res) => {
   res.send("Welcome to my Project");

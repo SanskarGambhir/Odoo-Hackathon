@@ -9,6 +9,7 @@ datasource db {
 
 // ---------- ENUMS ----------
 enum Role {
+  ADMIN
   FLEET_MANAGER
   DRIVER
   DISPATCHER

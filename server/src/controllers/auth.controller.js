@@ -50,6 +50,7 @@ export const registerUser = async (req, res) => {
         id: true,
         username: true,
         email: true,
+        role: true,
         createdAt: true,
       },
     });
@@ -162,6 +163,7 @@ export const loginUser = async (req, res) => {
         id: true,
         username: true,
         email: true,
+        role: true,
         createdAt: true,
         updatedAt: true,
       },
