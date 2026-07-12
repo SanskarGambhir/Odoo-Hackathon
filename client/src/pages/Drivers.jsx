@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Pencil, ShieldCheck, Filter } from 'lucide-react';
+import { Plus, Search, Pencil, ShieldCheck, ShieldOff, Filter, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,9 +31,9 @@ import { useData } from '../contexts/DataContext';
 import PageHeader from '../components/shared/PageHeader';
 import StatusBadge from '../components/shared/StatusBadge';
 import EmptyState from '../components/shared/EmptyState';
+import ConfirmDialog from '../components/shared/ConfirmDialog';
 
 const LICENSE_CATEGORIES = ['HMV', 'LMV', 'Transport'];
-const DRIVER_STATUSES = ['AVAILABLE', 'ON_TRIP', 'OFF_DUTY', 'SUSPENDED'];
 const STATUS_FILTER_OPTIONS = [
   { value: 'ALL', label: 'All Statuses' },
   { value: 'AVAILABLE', label: 'Available' },
@@ -58,36 +58,26 @@ function getScoreColor(score) {
   return 'text-[#E46E78]';
 }
 
-function getCompletionBarColor(rate) {
-  if (rate > 80) return 'bg-[#21B799]';
-  if (rate > 60) return 'bg-[#E4A900]';
-  return 'bg-[#E46E78]';
-}
-
-function getCompletionBarTrack(rate) {
-  if (rate > 80) return 'bg-[#21B799]/15';
-  if (rate > 60) return 'bg-[#E4A900]/15';
-  return 'bg-[#E46E78]/15';
-}
-
 const defaultFormValues = {
   name: '',
   licenseNumber: '',
   licenseCategory: 'LMV',
   licenseExpiry: '',
   contactNumber: '',
-  tripCompletionRate: 0,
-  safetyScore: 0,
-  status: 'AVAILABLE',
+  safetyScore: 100,
 };
 
 export default function Drivers() {
-  const { drivers, addDriver, updateDriver } = useData();
+  const { drivers, isLoading, addDriver, updateDriver, suspendDriver } = useData();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingDriver, setEditingDriver] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [licenseFilter, setLicenseFilter] = useState('ALL');
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+  const [suspendingDriver, setSuspendingDriver] = useState(null);
 
   const form = useForm({ defaultValues: defaultFormValues });
 
@@ -106,12 +96,14 @@ export default function Drivers() {
 
   function openAddDialog() {
     setEditingDriver(null);
+    setFormError('');
     form.reset(defaultFormValues);
     setDialogOpen(true);
   }
 
   function openEditDialog(driver) {
     setEditingDriver(driver);
+    setFormError('');
     form.reset({
       name: driver.name,
       licenseNumber: driver.licenseNumber,
@@ -120,27 +112,57 @@ export default function Drivers() {
         ? driver.licenseExpiry.substring(0, 10)
         : '',
       contactNumber: driver.contactNumber,
-      tripCompletionRate: driver.tripCompletionRate ?? 0,
-      safetyScore: driver.safetyScore ?? 0,
-      status: driver.status,
+      safetyScore: driver.safetyScore ?? 100,
     });
     setDialogOpen(true);
   }
 
-  function onSubmit(data) {
+  function openSuspendDialog(driver) {
+    setSuspendingDriver(driver);
+    setSuspendDialogOpen(true);
+  }
+
+  async function handleConfirmSuspend() {
+    if (suspendingDriver) {
+      try {
+        await suspendDriver(suspendingDriver.id);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    setSuspendDialogOpen(false);
+    setSuspendingDriver(null);
+  }
+
+  async function onSubmit(data) {
+    setFormError('');
+    setIsSubmitting(true);
     const payload = {
       ...data,
-      tripCompletionRate: Number(data.tripCompletionRate),
       safetyScore: Number(data.safetyScore),
     };
-    if (editingDriver) {
-      updateDriver({ ...editingDriver, ...payload });
-    } else {
-      addDriver(payload);
+    try {
+      if (editingDriver) {
+        await updateDriver(editingDriver.id, payload);
+      } else {
+        await addDriver(payload);
+      }
+      setDialogOpen(false);
+      form.reset(defaultFormValues);
+      setEditingDriver(null);
+    } catch (err) {
+      setFormError(err.response?.data?.message || 'Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
-    setDialogOpen(false);
-    form.reset(defaultFormValues);
-    setEditingDriver(null);
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#714B67] rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (
@@ -232,7 +254,6 @@ export default function Drivers() {
                   <TableHead className="font-semibold text-gray-700">Category</TableHead>
                   <TableHead className="font-semibold text-gray-700">License Expiry</TableHead>
                   <TableHead className="font-semibold text-gray-700">Contact</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Trip Completion</TableHead>
                   <TableHead className="font-semibold text-gray-700">Safety Score</TableHead>
                   <TableHead className="font-semibold text-gray-700">Status</TableHead>
                   <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
@@ -281,19 +302,6 @@ export default function Drivers() {
                           {driver.contactNumber}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2 min-w-[120px]">
-                            <div className={`h-2 flex-1 rounded-full overflow-hidden ${getCompletionBarTrack(driver.tripCompletionRate)}`}>
-                              <div
-                                className={`h-full rounded-full transition-all duration-500 ${getCompletionBarColor(driver.tripCompletionRate)}`}
-                                style={{ width: `${driver.tripCompletionRate}%` }}
-                              />
-                            </div>
-                            <span className="text-xs font-medium text-gray-500 w-8 text-right">
-                              {driver.tripCompletionRate}%
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
                           <span className={`font-bold text-sm ${getScoreColor(driver.safetyScore)}`}>
                             {driver.safetyScore}
                           </span>
@@ -302,14 +310,26 @@ export default function Drivers() {
                           <StatusBadge status={driver.status} />
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-gray-400 hover:text-[#714B67] hover:bg-[#714B67]/10"
-                            onClick={() => openEditDialog(driver)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-gray-400 hover:text-[#714B67] hover:bg-[#714B67]/10"
+                              onClick={() => openEditDialog(driver)}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={isSuspended}
+                              className="h-8 w-8 text-gray-400 hover:text-[#E46E78] hover:bg-[#E46E78]/10 disabled:opacity-30"
+                              onClick={() => openSuspendDialog(driver)}
+                              title="Suspend driver"
+                            >
+                              <ShieldOff className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </motion.tr>
                     );
@@ -330,6 +350,12 @@ export default function Drivers() {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-2">
+            {formError && (
+              <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                {formError}
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Name */}
               <div className="space-y-1.5 sm:col-span-2">
@@ -414,24 +440,6 @@ export default function Drivers() {
                 )}
               </div>
 
-              {/* Trip Completion Rate */}
-              <div className="space-y-1.5">
-                <Label htmlFor="tripCompletionRate">Trip Completion Rate (%)</Label>
-                <Input
-                  id="tripCompletionRate"
-                  type="number"
-                  min={0}
-                  max={100}
-                  {...form.register('tripCompletionRate', {
-                    min: { value: 0, message: 'Min 0' },
-                    max: { value: 100, message: 'Max 100' },
-                  })}
-                />
-                {form.formState.errors.tripCompletionRate && (
-                  <p className="text-xs text-[#E46E78]">{form.formState.errors.tripCompletionRate.message}</p>
-                )}
-              </div>
-
               {/* Safety Score */}
               <div className="space-y-1.5">
                 <Label htmlFor="safetyScore">Safety Score</Label>
@@ -449,29 +457,6 @@ export default function Drivers() {
                   <p className="text-xs text-[#E46E78]">{form.formState.errors.safetyScore.message}</p>
                 )}
               </div>
-
-              {/* Status */}
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label>Status</Label>
-                <Controller
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DRIVER_STATUSES.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {s.replace('_', ' ')}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
             </div>
 
             <DialogFooter className="pt-2">
@@ -484,14 +469,25 @@ export default function Drivers() {
               </Button>
               <Button
                 type="submit"
+                disabled={isSubmitting}
                 className="bg-[#714B67] hover:bg-[#5A3C52] text-white"
               >
-                {editingDriver ? 'Update Driver' : 'Add Driver'}
+                {isSubmitting ? 'Saving...' : editingDriver ? 'Update Driver' : 'Add Driver'}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Suspend Confirmation */}
+      <ConfirmDialog
+        open={suspendDialogOpen}
+        onOpenChange={setSuspendDialogOpen}
+        title="Suspend Driver"
+        description={`Are you sure you want to suspend "${suspendingDriver?.name || ''}"? They will not be assignable to new trips.`}
+        onConfirm={handleConfirmSuspend}
+        variant="destructive"
+      />
     </div>
   );
 }

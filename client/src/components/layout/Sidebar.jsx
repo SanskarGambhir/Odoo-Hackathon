@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Truck, Users, Route, Wrench,
-  Fuel, BarChart3, Settings, ChevronLeft, ChevronRight, X
+  Fuel, BarChart3, Settings, ChevronLeft, ChevronRight, X, UserCog
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,14 +15,15 @@ const navItems = [
   { path: '/maintenance', label: 'Maintenance', icon: Wrench, requiredRoute: '/maintenance' },
   { path: '/fuel-expenses', label: 'Fuel & Expenses', icon: Fuel, requiredRoute: '/fuel-expenses' },
   { path: '/analytics', label: 'Analytics', icon: BarChart3, requiredRoute: '/analytics' },
-  { path: '/settings', label: 'Settings', icon: Settings, requiredRoute: '/dashboard' },
+  { path: '/users', label: 'User Management', icon: UserCog, requiredRoute: '/users' },
+  { path: '/settings', label: 'Settings', icon: Settings, requiredRoute: '/settings' },
 ];
 
 export default function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const { hasAccess } = useAuth();
   const location = useLocation();
 
-  const filteredNav = navItems; // Temporarily show all items
+  const filteredNav = navItems.filter((item) => hasAccess(item.requiredRoute));
 
   return (
     <>

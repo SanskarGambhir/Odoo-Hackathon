@@ -1,61 +1,73 @@
-import { createContext, useContext, useState, useCallback } from 'react';
-import { ROLE_ACCESS } from '../data/mockData';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { loginUser, logoutUser, getCurrentUser } from '../api/auth.js';
+import { ROLE_ACCESS, ROLE_LABELS, GLOBAL_ROUTES } from '../data/mockData';
 
 const AuthContext = createContext(null);
 
-const DEMO_USERS = {
-  'fleet@transitops.com': { name: 'Arjun Mehta', role: 'Fleet Manager', avatar: 'AM' },
-  'dispatch@transitops.com': { name: 'Priya Reddy', role: 'Dispatcher', avatar: 'PR' },
-  'safety@transitops.com': { name: 'Karan Singh', role: 'Safety Officer', avatar: 'KS' },
-  'finance@transitops.com': { name: 'Neha Kapoor', role: 'Financial Analyst', avatar: 'NK' },
-};
+const toDisplayUser = (rawUser) => ({
+  id: rawUser.id,
+  email: rawUser.email,
+  name: rawUser.username,
+  role: ROLE_LABELS[rawUser.role] || rawUser.role,
+  avatar: rawUser.username?.substring(0, 2).toUpperCase() || 'U',
+});
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('transitops_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [user, setUser] = useState(null);
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = useCallback((email, password, role) => {
+  // Restore session on load using the httpOnly cookie, if any
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await getCurrentUser();
+        setUser(toDisplayUser(data.user));
+      } catch {
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, []);
+
+  const login = useCallback(async (email, password) => {
     setError(null);
 
-    // Simulate locked account
-    if (email === 'locked@transitops.com') {
-      setError({ type: 'locked', message: 'This account has been locked due to multiple failed login attempts. Please contact your administrator.' });
-      return false;
-    }
-
-    // Simulate invalid credentials
     if (!email || !password) {
       setError({ type: 'invalid', message: 'Please enter both email and password.' });
       return false;
     }
 
-    if (password.length < 3) {
-      setError({ type: 'invalid', message: 'Invalid email or password. Please try again.' });
+    try {
+      const { data } = await loginUser({ email, password });
+      setUser(toDisplayUser(data.user));
+      return true;
+    } catch (err) {
+      const status = err.response?.status;
+      const message = err.response?.data?.message;
+      if (status === 401 || status === 404) {
+        setError({ type: 'invalid', message: message || 'Invalid email or password. Please try again.' });
+      } else {
+        setError({ type: 'invalid', message: message || 'Something went wrong. Please try again.' });
+      }
       return false;
     }
-
-    // Check for demo user or accept any valid-looking email
-    const demoUser = DEMO_USERS[email.toLowerCase()];
-    const userData = demoUser
-      ? { email: email.toLowerCase(), name: demoUser.name, role: demoUser.role, avatar: demoUser.avatar }
-      : { email: email.toLowerCase(), name: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), role, avatar: email.substring(0, 2).toUpperCase() };
-
-    localStorage.setItem('transitops_user', JSON.stringify(userData));
-    setUser(userData);
-    return true;
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('transitops_user');
+  const logout = useCallback(async () => {
+    try {
+      await logoutUser();
+    } catch {
+      // ignore - clear local state regardless
+    }
     setUser(null);
     setError(null);
   }, []);
 
   const hasAccess = useCallback((path) => {
     if (!user) return false;
+    if (GLOBAL_ROUTES.some(route => path.startsWith(route))) return true;
     const access = ROLE_ACCESS[user.role];
     if (!access) return false;
     return access.routes.some(route => path.startsWith(route));
@@ -75,6 +87,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       user,
       error,
+      isLoading,
       login,
       logout,
       hasAccess,

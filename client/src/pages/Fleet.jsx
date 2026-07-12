@@ -6,16 +6,14 @@ import {
   Search,
   Eye,
   Pencil,
-  Trash2,
+  Ban,
   Truck,
-  X,
-  Fuel,
   MapPin,
-  Calendar,
   Gauge,
   Weight,
   IndianRupee,
   Hash,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,7 +49,6 @@ import ConfirmDialog from '../components/shared/ConfirmDialog';
 
 const VEHICLE_TYPES = ['Truck', 'Bus', 'Van', 'Car'];
 const VEHICLE_STATUSES = ['AVAILABLE', 'ON_TRIP', 'IN_SHOP', 'RETIRED'];
-const FUEL_TYPES = ['Diesel', 'Petrol', 'CNG', 'Electric', 'Hybrid'];
 const REGIONS = ['North', 'South', 'East', 'West', 'Central'];
 const ALL_TYPES = ['All', ...VEHICLE_TYPES];
 const ALL_STATUSES = ['All', ...VEHICLE_STATUSES];
@@ -63,21 +60,17 @@ const fmtCurrency = (num) =>
   num != null ? `₹${Number(num).toLocaleString('en-IN')}` : '—';
 
 const defaultFormValues = {
-  registrationNumber: '',
+  registrationNo: '',
   name: '',
   type: '',
-  capacity: '',
   maxLoadKg: '',
-  odometerKm: '',
+  odometer: '',
   acquisitionCost: '',
-  status: 'AVAILABLE',
   region: '',
-  fuelType: '',
-  year: '',
 };
 
 export default function Fleet() {
-  const { vehicles, addVehicle, updateVehicle, deleteVehicle } = useData();
+  const { vehicles, isLoading, addVehicle, updateVehicle, deleteVehicle } = useData();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
@@ -89,6 +82,8 @@ export default function Fleet() {
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [viewingVehicle, setViewingVehicle] = useState(null);
   const [deletingVehicle, setDeletingVehicle] = useState(null);
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     register,
@@ -106,7 +101,7 @@ export default function Fleet() {
       const q = searchQuery.toLowerCase();
       result = result.filter(
         (v) =>
-          v.registrationNumber?.toLowerCase().includes(q) ||
+          v.registrationNo?.toLowerCase().includes(q) ||
           v.name?.toLowerCase().includes(q)
       );
     }
@@ -125,6 +120,7 @@ export default function Fleet() {
   // Open add dialog
   const handleAdd = () => {
     setEditingVehicle(null);
+    setFormError('');
     reset(defaultFormValues);
     setFormDialogOpen(true);
   };
@@ -132,18 +128,15 @@ export default function Fleet() {
   // Open edit dialog
   const handleEdit = (vehicle) => {
     setEditingVehicle(vehicle);
+    setFormError('');
     reset({
-      registrationNumber: vehicle.registrationNumber || '',
+      registrationNo: vehicle.registrationNo || '',
       name: vehicle.name || '',
       type: vehicle.type || '',
-      capacity: vehicle.capacity ?? '',
       maxLoadKg: vehicle.maxLoadKg ?? '',
-      odometerKm: vehicle.odometerKm ?? '',
+      odometer: vehicle.odometer ?? '',
       acquisitionCost: vehicle.acquisitionCost ?? '',
-      status: vehicle.status || 'AVAILABLE',
       region: vehicle.region || '',
-      fuelType: vehicle.fuelType || '',
-      year: vehicle.year ?? '',
     });
     setFormDialogOpen(true);
   };
@@ -154,52 +147,66 @@ export default function Fleet() {
     setViewDialogOpen(true);
   };
 
-  // Open delete dialog
+  // Open retire (soft-delete) dialog
   const handleDeleteClick = (vehicle) => {
     setDeletingVehicle(vehicle);
     setDeleteDialogOpen(true);
   };
 
-  // Confirm delete
-  const handleConfirmDelete = () => {
+  // Confirm retire
+  const handleConfirmDelete = async () => {
     if (deletingVehicle) {
-      deleteVehicle(deletingVehicle.id);
+      try {
+        await deleteVehicle(deletingVehicle.id);
+      } catch (err) {
+        // surfaced silently on the list; vehicle status simply won't change
+        console.error(err);
+      }
     }
     setDeleteDialogOpen(false);
     setDeletingVehicle(null);
   };
 
   // Form submit
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
+    setFormError('');
+    setIsSubmitting(true);
     const payload = {
-      ...data,
-      capacity: data.capacity ? Number(data.capacity) : 0,
+      registrationNo: data.registrationNo,
+      name: data.name,
+      type: data.type,
       maxLoadKg: data.maxLoadKg ? Number(data.maxLoadKg) : 0,
-      odometerKm: data.odometerKm ? Number(data.odometerKm) : 0,
+      odometer: data.odometer ? Number(data.odometer) : 0,
       acquisitionCost: data.acquisitionCost ? Number(data.acquisitionCost) : 0,
-      year: data.year ? Number(data.year) : new Date().getFullYear(),
+      region: data.region || undefined,
     };
 
-    if (editingVehicle) {
-      updateVehicle({ ...editingVehicle, ...payload });
-    } else {
-      addVehicle(payload);
+    try {
+      if (editingVehicle) {
+        // registrationNo is immutable once created on the backend
+        const updatePayload = { ...payload };
+        delete updatePayload.registrationNo;
+        await updateVehicle(editingVehicle.id, updatePayload);
+      } else {
+        await addVehicle(payload);
+      }
+      setFormDialogOpen(false);
+      setEditingVehicle(null);
+      reset(defaultFormValues);
+    } catch (err) {
+      setFormError(err.response?.data?.message || 'Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setFormDialogOpen(false);
-    setEditingVehicle(null);
-    reset(defaultFormValues);
   };
 
-  // Unique registration number validation
-  const validateRegNumber = (value) => {
-    const existing = vehicles.find(
-      (v) =>
-        v.registrationNumber?.toLowerCase() === value?.toLowerCase() &&
-        v.id !== editingVehicle?.id
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#714B67] rounded-full animate-spin" />
+      </div>
     );
-    return existing ? 'Registration number already exists' : true;
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -275,9 +282,15 @@ export default function Fleet() {
                   : 'Get started by adding your first vehicle to the fleet.'
               }
               action={
-                !searchQuery && typeFilter === 'All' && statusFilter === 'All'
-                  ? { label: 'Add Vehicle', onClick: handleAdd }
-                  : undefined
+                !searchQuery && typeFilter === 'All' && statusFilter === 'All' ? (
+                  <Button
+                    onClick={handleAdd}
+                    className="bg-[#714B67] hover:bg-[#5A3C52] text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Vehicle
+                  </Button>
+                ) : undefined
               }
             />
           </div>
@@ -296,7 +309,7 @@ export default function Fleet() {
                     Type
                   </TableHead>
                   <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Capacity
+                    Max Load
                   </TableHead>
                   <TableHead className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Odometer
@@ -319,7 +332,7 @@ export default function Fleet() {
                     className="hover:bg-gray-50/50 transition-colors"
                   >
                     <TableCell className="font-mono text-sm font-medium text-gray-900">
-                      {vehicle.registrationNumber}
+                      {vehicle.registrationNo}
                     </TableCell>
                     <TableCell className="text-sm text-gray-700">
                       {vehicle.name}
@@ -328,10 +341,10 @@ export default function Fleet() {
                       {vehicle.type}
                     </TableCell>
                     <TableCell className="text-sm text-gray-600">
-                      {fmt(vehicle.capacity)}
+                      {fmt(vehicle.maxLoadKg)} kg
                     </TableCell>
                     <TableCell className="text-sm text-gray-600">
-                      {fmt(vehicle.odometerKm)} km
+                      {fmt(vehicle.odometer)} km
                     </TableCell>
                     <TableCell className="text-sm text-gray-600">
                       {fmtCurrency(vehicle.acquisitionCost)}
@@ -360,10 +373,12 @@ export default function Fleet() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-gray-500 hover:text-[#E46E78] hover:bg-[#E46E78]/10"
+                          disabled={vehicle.status === 'RETIRED'}
+                          className="h-8 w-8 text-gray-500 hover:text-[#E46E78] hover:bg-[#E46E78]/10 disabled:opacity-30"
                           onClick={() => handleDeleteClick(vehicle)}
+                          title="Retire vehicle"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Ban className="w-4 h-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -390,23 +405,29 @@ export default function Fleet() {
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
+            {formError && (
+              <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                {formError}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               {/* Registration Number */}
               <div className="space-y-1.5">
-                <Label htmlFor="registrationNumber" className="text-sm font-medium">
+                <Label htmlFor="registrationNo" className="text-sm font-medium">
                   Registration Number *
                 </Label>
                 <Input
-                  id="registrationNumber"
+                  id="registrationNo"
                   placeholder="MH-01-AB-1234"
-                  className={`h-9 text-sm ${errors.registrationNumber ? 'border-red-400' : ''}`}
-                  {...register('registrationNumber', {
+                  disabled={!!editingVehicle}
+                  className={`h-9 text-sm ${errors.registrationNo ? 'border-red-400' : ''}`}
+                  {...register('registrationNo', {
                     required: 'Registration number is required',
-                    validate: validateRegNumber,
                   })}
                 />
-                {errors.registrationNumber && (
-                  <p className="text-xs text-red-500">{errors.registrationNumber.message}</p>
+                {errors.registrationNo && (
+                  <p className="text-xs text-red-500">{errors.registrationNo.message}</p>
                 )}
               </div>
 
@@ -453,34 +474,20 @@ export default function Fleet() {
                 )}
               </div>
 
-              {/* Capacity */}
-              <div className="space-y-1.5">
-                <Label htmlFor="capacity" className="text-sm font-medium">
-                  Capacity
-                </Label>
-                <Input
-                  id="capacity"
-                  type="number"
-                  placeholder="20"
-                  className="h-9 text-sm"
-                  {...register('capacity', { min: { value: 0, message: 'Must be positive' } })}
-                />
-                {errors.capacity && (
-                  <p className="text-xs text-red-500">{errors.capacity.message}</p>
-                )}
-              </div>
-
               {/* Max Load Kg */}
               <div className="space-y-1.5">
                 <Label htmlFor="maxLoadKg" className="text-sm font-medium">
-                  Max Load (kg)
+                  Max Load (kg) *
                 </Label>
                 <Input
                   id="maxLoadKg"
                   type="number"
                   placeholder="5000"
-                  className="h-9 text-sm"
-                  {...register('maxLoadKg', { min: { value: 0, message: 'Must be positive' } })}
+                  className={`h-9 text-sm ${errors.maxLoadKg ? 'border-red-400' : ''}`}
+                  {...register('maxLoadKg', {
+                    required: 'Max load is required',
+                    min: { value: 0, message: 'Must be positive' },
+                  })}
                 />
                 {errors.maxLoadKg && (
                   <p className="text-xs text-red-500">{errors.maxLoadKg.message}</p>
@@ -489,53 +496,36 @@ export default function Fleet() {
 
               {/* Odometer */}
               <div className="space-y-1.5">
-                <Label htmlFor="odometerKm" className="text-sm font-medium">
+                <Label htmlFor="odometer" className="text-sm font-medium">
                   Odometer (km)
                 </Label>
                 <Input
-                  id="odometerKm"
+                  id="odometer"
                   type="number"
                   placeholder="0"
                   className="h-9 text-sm"
-                  {...register('odometerKm', { min: { value: 0, message: 'Must be positive' } })}
+                  {...register('odometer', { min: { value: 0, message: 'Must be positive' } })}
                 />
               </div>
 
               {/* Acquisition Cost */}
               <div className="space-y-1.5">
                 <Label htmlFor="acquisitionCost" className="text-sm font-medium">
-                  Acquisition Cost (₹)
+                  Acquisition Cost (₹) *
                 </Label>
                 <Input
                   id="acquisitionCost"
                   type="number"
                   placeholder="1500000"
-                  className="h-9 text-sm"
-                  {...register('acquisitionCost', { min: { value: 0, message: 'Must be positive' } })}
+                  className={`h-9 text-sm ${errors.acquisitionCost ? 'border-red-400' : ''}`}
+                  {...register('acquisitionCost', {
+                    required: 'Acquisition cost is required',
+                    min: { value: 0, message: 'Must be positive' },
+                  })}
                 />
-              </div>
-
-              {/* Status */}
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium">Status</Label>
-                <Controller
-                  name="status"
-                  control={control}
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {VEHICLE_STATUSES.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {s}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
+                {errors.acquisitionCost && (
+                  <p className="text-xs text-red-500">{errors.acquisitionCost.message}</p>
+                )}
               </div>
 
               {/* Region */}
@@ -560,49 +550,6 @@ export default function Fleet() {
                   )}
                 />
               </div>
-
-              {/* Fuel Type */}
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium">Fuel Type</Label>
-                <Controller
-                  name="fuelType"
-                  control={control}
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Select fuel" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FUEL_TYPES.map((f) => (
-                          <SelectItem key={f} value={f}>
-                            {f}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-
-              {/* Year */}
-              <div className="space-y-1.5">
-                <Label htmlFor="year" className="text-sm font-medium">
-                  Year
-                </Label>
-                <Input
-                  id="year"
-                  type="number"
-                  placeholder={String(new Date().getFullYear())}
-                  className="h-9 text-sm"
-                  {...register('year', {
-                    min: { value: 1990, message: 'Year must be 1990+' },
-                    max: { value: new Date().getFullYear() + 1, message: 'Invalid year' },
-                  })}
-                />
-                {errors.year && (
-                  <p className="text-xs text-red-500">{errors.year.message}</p>
-                )}
-              </div>
             </div>
 
             <DialogFooter className="pt-4">
@@ -616,9 +563,10 @@ export default function Fleet() {
               </Button>
               <Button
                 type="submit"
+                disabled={isSubmitting}
                 className="bg-[#714B67] hover:bg-[#5A3C52] text-white gap-2"
               >
-                {editingVehicle ? 'Update Vehicle' : 'Add Vehicle'}
+                {isSubmitting ? 'Saving...' : editingVehicle ? 'Update Vehicle' : 'Add Vehicle'}
               </Button>
             </DialogFooter>
           </form>
@@ -640,7 +588,7 @@ export default function Fleet() {
               <DetailItem
                 icon={<Hash className="w-4 h-4" />}
                 label="Reg. Number"
-                value={viewingVehicle.registrationNumber}
+                value={viewingVehicle.registrationNo}
               />
               <DetailItem
                 icon={<Truck className="w-4 h-4" />}
@@ -653,15 +601,6 @@ export default function Fleet() {
                 value={viewingVehicle.type}
               />
               <DetailItem
-                icon={<Calendar className="w-4 h-4" />}
-                label="Year"
-                value={viewingVehicle.year}
-              />
-              <DetailItem
-                label="Capacity"
-                value={fmt(viewingVehicle.capacity)}
-              />
-              <DetailItem
                 icon={<Weight className="w-4 h-4" />}
                 label="Max Load"
                 value={`${fmt(viewingVehicle.maxLoadKg)} kg`}
@@ -669,17 +608,12 @@ export default function Fleet() {
               <DetailItem
                 icon={<Gauge className="w-4 h-4" />}
                 label="Odometer"
-                value={`${fmt(viewingVehicle.odometerKm)} km`}
+                value={`${fmt(viewingVehicle.odometer)} km`}
               />
               <DetailItem
                 icon={<IndianRupee className="w-4 h-4" />}
                 label="Acq. Cost"
                 value={fmtCurrency(viewingVehicle.acquisitionCost)}
-              />
-              <DetailItem
-                icon={<Fuel className="w-4 h-4" />}
-                label="Fuel Type"
-                value={viewingVehicle.fuelType || '—'}
               />
               <DetailItem
                 icon={<MapPin className="w-4 h-4" />}
@@ -714,12 +648,12 @@ export default function Fleet() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* Retire Confirmation */}
       <ConfirmDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        title="Delete Vehicle"
-        description={`Are you sure you want to delete "${deletingVehicle?.registrationNumber || ''}"? This action cannot be undone.`}
+        title="Retire Vehicle"
+        description={`Are you sure you want to retire "${deletingVehicle?.registrationNo || ''}"? Retired vehicles are hidden from dispatch selection.`}
         onConfirm={handleConfirmDelete}
         variant="destructive"
       />

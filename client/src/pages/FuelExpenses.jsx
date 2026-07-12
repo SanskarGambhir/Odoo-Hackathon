@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
 import {
   Fuel,
   Plus,
   Receipt,
-  DollarSign,
   Wrench,
   TrendingDown,
+  AlertCircle,
 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import PageHeader from '../components/shared/PageHeader';
@@ -38,27 +38,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
 
-const EXPENSE_TYPES = ['Toll', 'Parking', 'Fine', 'Maintenance', 'Other'];
+const EXPENSE_TYPES = ['TOLL', 'PARKING', 'FINE', 'MAINTENANCE', 'OTHER'];
 
 export default function FuelExpenses() {
   const {
     vehicles,
     trips,
+    maintenance,
     fuelLogs,
     expenses,
-    analytics,
+    isLoading,
     addFuelLog,
     addExpense,
   } = useData();
 
   const [fuelDialogOpen, setFuelDialogOpen] = useState(false);
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
+  const [fuelError, setFuelError] = useState('');
+  const [expenseError, setExpenseError] = useState('');
 
   // Fuel Log Form
   const fuelForm = useForm({
-    defaultValues: { vehicleId: '', date: '', liters: '', cost: '' },
+    defaultValues: { vehicleId: '', loggedAt: '', liters: '', cost: '' },
   });
 
   // Expense Form
@@ -77,34 +79,60 @@ export default function FuelExpenses() {
 
   const getTripLabel = (tripId) => {
     const trip = getTrip(tripId);
-    return trip ? `${trip.source} → ${trip.destination}` : tripId;
+    return trip ? `${trip.source} → ${trip.destination}` : (tripId || '—');
   };
 
-  const onFuelSubmit = (data) => {
-    addFuelLog({
-      vehicleId: data.vehicleId,
-      date: data.date,
-      liters: Number(data.liters),
-      cost: Number(data.cost),
-    });
-    fuelForm.reset();
-    setFuelDialogOpen(false);
+  const costs = useMemo(() => {
+    const totalFuelCost = fuelLogs.reduce((sum, fl) => sum + Number(fl.cost), 0);
+    const totalMaintenanceCost = maintenance.reduce((sum, m) => sum + Number(m.cost), 0);
+    const totalExpenseCost = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+    return {
+      totalFuelCost,
+      totalMaintenanceCost,
+      totalExpenseCost,
+      totalOperationalCost: totalFuelCost + totalMaintenanceCost + totalExpenseCost,
+    };
+  }, [fuelLogs, maintenance, expenses]);
+
+  const onFuelSubmit = async (data) => {
+    setFuelError('');
+    try {
+      await addFuelLog({
+        vehicleId: data.vehicleId,
+        liters: Number(data.liters),
+        cost: Number(data.cost),
+        ...(data.loggedAt && { loggedAt: data.loggedAt }),
+      });
+      fuelForm.reset();
+      setFuelDialogOpen(false);
+    } catch (err) {
+      setFuelError(err.response?.data?.message || 'Failed to add fuel log.');
+    }
   };
 
-  const onExpenseSubmit = (data) => {
-    addExpense({
-      tripId: data.tripId,
-      vehicleId: data.vehicleId,
-      type: data.type,
-      amount: Number(data.amount),
-    });
-    expenseForm.reset();
-    setExpenseDialogOpen(false);
+  const onExpenseSubmit = async (data) => {
+    setExpenseError('');
+    try {
+      await addExpense({
+        ...(data.tripId && { tripId: data.tripId }),
+        vehicleId: data.vehicleId,
+        type: data.type,
+        amount: Number(data.amount),
+      });
+      expenseForm.reset();
+      setExpenseDialogOpen(false);
+    } catch (err) {
+      setExpenseError(err.response?.data?.message || 'Failed to add expense.');
+    }
   };
 
-  // Auto-fill vehicleId when trip is selected
-  const watchedTripId = expenseForm.watch('tripId');
-  const selectedTrip = getTrip(watchedTripId);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#714B67] rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -123,7 +151,7 @@ export default function FuelExpenses() {
           <div>
             <p className="text-white/70 text-sm">Total Operational Cost</p>
             <p className="text-3xl font-bold">
-              ₹{Number(analytics.totalOperationalCost || 0).toLocaleString('en-IN')}
+              ₹{Number(costs.totalOperationalCost || 0).toLocaleString('en-IN')}
             </p>
           </div>
         </div>
@@ -134,7 +162,7 @@ export default function FuelExpenses() {
               <p className="text-white/70 text-xs uppercase tracking-wider">Fuel Cost</p>
             </div>
             <p className="text-xl font-semibold">
-              ₹{Number(analytics.totalFuelCost || 0).toLocaleString('en-IN')}
+              ₹{Number(costs.totalFuelCost || 0).toLocaleString('en-IN')}
             </p>
           </div>
           <div>
@@ -143,7 +171,7 @@ export default function FuelExpenses() {
               <p className="text-white/70 text-xs uppercase tracking-wider">Maintenance Cost</p>
             </div>
             <p className="text-xl font-semibold">
-              ₹{Number(analytics.totalMaintenanceCost || 0).toLocaleString('en-IN')}
+              ₹{Number(costs.totalMaintenanceCost || 0).toLocaleString('en-IN')}
             </p>
           </div>
           <div>
@@ -152,7 +180,7 @@ export default function FuelExpenses() {
               <p className="text-white/70 text-xs uppercase tracking-wider">Other Expenses</p>
             </div>
             <p className="text-xl font-semibold">
-              ₹{Number(analytics.totalExpenseCost || 0).toLocaleString('en-IN')}
+              ₹{Number(costs.totalExpenseCost || 0).toLocaleString('en-IN')}
             </p>
           </div>
         </div>
@@ -191,6 +219,12 @@ export default function FuelExpenses() {
                     <DialogTitle>Add Fuel Log</DialogTitle>
                   </DialogHeader>
                   <form onSubmit={fuelForm.handleSubmit(onFuelSubmit)} className="space-y-4 mt-2">
+                    {fuelError && (
+                      <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        {fuelError}
+                      </div>
+                    )}
                     <div className="space-y-2">
                       <Label>Vehicle</Label>
                       <Select
@@ -211,7 +245,7 @@ export default function FuelExpenses() {
                     </div>
                     <div className="space-y-2">
                       <Label>Date</Label>
-                      <Input type="date" {...fuelForm.register('date', { required: true })} />
+                      <Input type="date" {...fuelForm.register('loggedAt')} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -278,7 +312,7 @@ export default function FuelExpenses() {
                           {getVehicleName(log.vehicleId)}
                         </TableCell>
                         <TableCell className="text-gray-600">
-                          {new Date(log.date).toLocaleDateString('en-IN', {
+                          {new Date(log.loggedAt).toLocaleDateString('en-IN', {
                             day: '2-digit',
                             month: 'short',
                             year: 'numeric',
@@ -311,6 +345,12 @@ export default function FuelExpenses() {
                     <DialogTitle>Add Expense</DialogTitle>
                   </DialogHeader>
                   <form onSubmit={expenseForm.handleSubmit(onExpenseSubmit)} className="space-y-4 mt-2">
+                    {expenseError && (
+                      <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        {expenseError}
+                      </div>
+                    )}
                     <div className="space-y-2">
                       <Label>Trip</Label>
                       <Select
