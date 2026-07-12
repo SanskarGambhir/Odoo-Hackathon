@@ -99,6 +99,8 @@ model Driver {
   contactNumber   String
   safetyScore     Int          @default(100)
   status          DriverStatus @default(AVAILABLE)
+  licenseFrontUrl String?
+  licenseBackUrl  String?
 
   trips Trip[]
 

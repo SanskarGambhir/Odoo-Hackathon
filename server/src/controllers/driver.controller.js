@@ -1,5 +1,44 @@
 import prisma from "../db/prisma.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { extractLicenseDetails } from "../services/license.service.js";
+
+const LICENSE_CATEGORIES = ["HMV", "LMV", "Transport"];
+
+function matchLicenseCategory(categories) {
+  if (!Array.isArray(categories)) return null;
+  for (const category of categories) {
+    const match = LICENSE_CATEGORIES.find(
+      (valid) => valid.toLowerCase() === String(category).trim().toLowerCase()
+    );
+    if (match) return match;
+  }
+  return null;
+}
+
+export const extractDriverLicense = asyncHandler(async (req, res) => {
+  const frontFile = req.files?.frontImage?.[0];
+  const backFile = req.files?.backImage?.[0];
+
+  if (!frontFile || !backFile) {
+    return res.status(400).json({
+      success: false,
+      message: "Both frontImage and backImage files are required",
+    });
+  }
+
+  const extracted = await extractLicenseDetails(frontFile.buffer, backFile.buffer, {
+    frontMimeType: frontFile.mimetype,
+    backMimeType: backFile.mimetype,
+  });
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      ...extracted,
+      licenseCategory: matchLicenseCategory(extracted.licenseCategory),
+    },
+  });
+});
 
 export const createDriver = asyncHandler(async (req, res) => {
   const {
@@ -10,6 +49,8 @@ export const createDriver = asyncHandler(async (req, res) => {
     licenseExpiry,
     contactNumber,
     safetyScore,
+    licenseFrontUrl,
+    licenseBackUrl,
     userId,
   } = req.body;
 
@@ -31,6 +72,8 @@ export const createDriver = asyncHandler(async (req, res) => {
         licenseExpiry: new Date(licenseExpiry),
         contactNumber,
         safetyScore: safetyScore ?? 100,
+        ...(licenseFrontUrl && { licenseFrontUrl }),
+        ...(licenseBackUrl && { licenseBackUrl }),
         ...(userId && { userId }),
       },
     });

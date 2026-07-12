@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Pencil, ShieldCheck, ShieldOff, Filter, AlertCircle } from 'lucide-react';
+import { Plus, Search, Pencil, ShieldCheck, ShieldOff, Filter, AlertCircle, ScanLine, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +28,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useData } from '../contexts/DataContext';
+import * as driversApi from '../api/drivers.js';
 import PageHeader from '../components/shared/PageHeader';
 import StatusBadge from '../components/shared/StatusBadge';
 import EmptyState from '../components/shared/EmptyState';
@@ -47,6 +48,22 @@ const LICENSE_FILTER_OPTIONS = [
   { value: 'LMV', label: 'LMV' },
   { value: 'Transport', label: 'Transport' },
 ];
+
+function useObjectUrl(file) {
+  const [url, setUrl] = useState(null);
+
+  useEffect(() => {
+    if (!file) {
+      setUrl(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(file);
+    setUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  return url;
+}
 
 function isLicenseExpired(expiryDate) {
   return new Date(expiryDate) < new Date();
@@ -79,8 +96,16 @@ export default function Drivers() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [suspendingDriver, setSuspendingDriver] = useState(null);
+  const [frontImageFile, setFrontImageFile] = useState(null);
+  const [backImageFile, setBackImageFile] = useState(null);
+  const [isExtracted, setIsExtracted] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractError, setExtractError] = useState('');
 
   const form = useForm({ defaultValues: defaultFormValues });
+
+  const frontImagePreview = useObjectUrl(frontImageFile);
+  const backImagePreview = useObjectUrl(backImageFile);
 
   const filteredDrivers = useMemo(() => {
     return drivers.filter((d) => {
@@ -99,6 +124,10 @@ export default function Drivers() {
   function openAddDialog() {
     setEditingDriver(null);
     setFormError('');
+    setExtractError('');
+    setFrontImageFile(null);
+    setBackImageFile(null);
+    setIsExtracted(false);
     form.reset(defaultFormValues);
     setDialogOpen(true);
   }
@@ -106,6 +135,10 @@ export default function Drivers() {
   function openEditDialog(driver) {
     setEditingDriver(driver);
     setFormError('');
+    setExtractError('');
+    setFrontImageFile(null);
+    setBackImageFile(null);
+    setIsExtracted(false);
     form.reset({
       name: driver.name,
       email: driver.email,
@@ -135,6 +168,25 @@ export default function Drivers() {
     }
     setSuspendDialogOpen(false);
     setSuspendingDriver(null);
+  }
+
+  async function handleExtractLicense() {
+    if (!frontImageFile || !backImageFile) return;
+    setExtractError('');
+    setIsExtracting(true);
+    try {
+      const { data } = await driversApi.extractLicense(frontImageFile, backImageFile);
+      const extracted = data.data;
+      setIsExtracted(true);
+      if (extracted.name) form.setValue('name', extracted.name);
+      if (extracted.licenseNumber) form.setValue('licenseNumber', extracted.licenseNumber);
+      if (extracted.licenseCategory) form.setValue('licenseCategory', extracted.licenseCategory);
+      if (extracted.licenseExpiry) form.setValue('licenseExpiry', extracted.licenseExpiry);
+    } catch (err) {
+      setExtractError(err.response?.data?.message || 'Could not extract license details. Please try again.');
+    } finally {
+      setIsExtracting(false);
+    }
   }
 
   async function onSubmit(data) {
@@ -363,6 +415,79 @@ export default function Drivers() {
                 {formError}
               </div>
             )}
+            {!editingDriver && (
+              <div className="space-y-3 rounded-lg border border-dashed border-gray-300 p-3">
+                <p className="text-sm font-medium text-gray-700">
+                  License Images <span className="text-gray-400 font-normal">(optional)</span>
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="licenseFrontImage">Front Side</Label>
+                    <Input
+                      id="licenseFrontImage"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        setFrontImageFile(e.target.files?.[0] || null);
+                        setIsExtracted(false);
+                      }}
+                    />
+                    {frontImagePreview && (
+                      <img
+                        src={frontImagePreview}
+                        alt="License front preview"
+                        className="mt-1 h-28 w-full rounded-md border border-gray-200 object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="licenseBackImage">Back Side</Label>
+                    <Input
+                      id="licenseBackImage"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        setBackImageFile(e.target.files?.[0] || null);
+                        setIsExtracted(false);
+                      }}
+                    />
+                    {backImagePreview && (
+                      <img
+                        src={backImagePreview}
+                        alt="License back preview"
+                        className="mt-1 h-28 w-full rounded-md border border-gray-200 object-cover"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {extractError && (
+                  <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    {extractError}
+                  </div>
+                )}
+
+                {isExtracted ? (
+                  <div className="flex items-center gap-2 text-sm text-[#21B799]">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    Details extracted — review the fields below before saving.
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={!frontImageFile || !backImageFile || isExtracting}
+                    onClick={handleExtractLicense}
+                    className="border-[#714B67] text-[#714B67] hover:bg-[#714B67]/5"
+                  >
+                    <ScanLine className="w-4 h-4 mr-2" />
+                    {isExtracting ? 'Extracting...' : 'Extract Details from License'}
+                  </Button>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Name */}
               <div className="space-y-1.5 sm:col-span-2">
