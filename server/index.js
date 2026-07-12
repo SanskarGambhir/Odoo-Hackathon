@@ -5,7 +5,7 @@ dotenv.config({
 
 import app from "./app.js";
 import prisma from "./src/db/prisma.js";
-
+import { startExpiryCron } from "./src/services/notification.service.js";
 
 const port = process.env.PORT || 3000;
 
@@ -14,6 +14,8 @@ async function startServer() {
     await prisma.$connect();
 
     console.log("✅ Connected to PostgreSQL via Prisma");
+
+    startExpiryCron();
 
     app.listen(port, () => {
       console.log(`🚀 Server is running on http://localhost:${port}`);
